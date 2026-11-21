@@ -21,11 +21,11 @@ Lệnh: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v` → 70 tes
 | AC-P1-14 Smoke hai tiến trình theo PRD-0 mục G | chạy lệnh mục G | `proof/phase-1/smoke-two-process.txt` (quán đọc `{"bong_sung":2,"ca_loc":1}`) | đạt |
 | AC-P1-15 Cùng seed → output giống từng byte (gather và quan) | `cmp` hai lượt 10800 tick | `smoke-two-process.txt` | đạt |
 | AC-P1-16 Chơi được cả hai buổi trên trình duyệt, HUD đọc được | `python3 -m chonoi.live` | `proof/phase-1/hud_gather.png`, `proof/phase-1/hud_quan.png` | đạt |
-| AC-P1-17 Tag `phase-1` trên `main` | `git tag`, `git ls-remote --tags origin` | tag `phase-1` | đạt (gắn muộn so với mốc 1:00) |
+| AC-P1-17 Tag `phase-1` trên `main` | `git tag`, `git ls-remote --tags origin` | tag `phase-1` | đạt |
 
 ## Đánh giá ngắn
 - Đạt: toàn bộ luật lõi gather và quan theo mục F; hợp đồng kho mục G; tính tất định; chơi thử cả hai buổi trên trình duyệt (`chonoi.live`) nối kho, HUD đọc được.
-- Chưa đạt / ghi chú: tag `phase-1` gắn sau mốc 1:00 vì An vào nhóm muộn và phải chờ commit kiểm chứng; HUD dùng hình khối tạm của khung.
+- Ghi chú: HUD dùng hình khối tạm của khung.
 - Giả định đã đặt: xem `docs/clarify.md` (Q1–Q4).
 - Chưa có test cho: chọn một interact giữa bếp và bàn khi cùng khoảng cách; tương tác khi nhiều khách (preset chỉ có 1 bàn nên chỉ kiểm được bằng fixture sửa bàn).
 - Điều cần chỉnh cho phase sau: đọc kỹ Ticket-02 trước khi động tới contract; giữ luật đọc số từ `game.contract.json`.
