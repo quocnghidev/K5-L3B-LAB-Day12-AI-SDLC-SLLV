@@ -57,7 +57,7 @@ Hết giờ mỗi phase thì gắn tag rồi đi tiếp; chỗ chưa xong ghi tr
 
 ---
 
-# Nhóm SLLV — Quán Ăn Chợ Nổi (Test Contract v1.1)
+# Nhóm SLLV — Quán Ăn Chợ Nổi (Test Contract v1.2)
 
 **Chạy từ clone sạch (Python 3, không cần cài gì):**
 ```bash
@@ -75,6 +75,9 @@ Cấp nâng cấp mua trong Shop có hiệu lực từ Ngày kế.
 
 **Cách tính điểm:** `score = earned + 100 × floor(reputation)`. Boa = `floor(giá món × 0.2)` nếu phục vụ khi kiên nhẫn còn ≥ 50%. Khách bỏ đi −0.5 uy tín, boa dương +0.2 uy tín, uy tín kẹp [0, 5].
 
-**Hợp đồng tích hợp:** `docs/contracts/README.md` (file kho `{"items":{"<kind>":<số nguyên >= 0>}}`, ví dụ `docs/contracts/inventory.sample.json`; giao diện `ShopSim`/`QuanSim` cho `day`).
+**Độ tươi (v1.2):** nguyên liệu hao 0.5/s trong giỏ, 0.25/s trong kho quán; dưới 30 là ươn (ô xám "ươn" trên HUD, không nấu được).
+Giá món = `floor(giá niêm yết × trung bình độ tươi / 100)`.
+
+**Hợp đồng tích hợp:** `docs/contracts/README.md` (file kho cá thể `{"items":[{"id":"I1","kind":"ca_loc","fresh":100}]}`, ví dụ `docs/contracts/inventory.sample.json`; giao diện `ShopSim`/`QuanSim` cho `day`). Thay đổi phá vỡ: `CHANGELOG.md`.
 
 **Sáng tạo của nhóm:** chưa có (làm lõi đúng trước).

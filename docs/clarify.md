@@ -11,3 +11,7 @@
 | 7 | Phase 2 | Cá Sấu "đến" waypoint khi nào nếu số thực lệch vài ulp? | Coi như tới khi quãng còn lại ≤ bước + 1e-9 (240 bước × 1/60 m = đúng 4 m). | PO (tự quyết) |
 | 8 | Phase 2 | Ngưỡng "người chơi ở d ≥ 10" để Cá Sấu đuổi/chạm lấy từ đâu? | Lấy cận dưới `depths` của loài (Cá Sấu 10), để mở rộng Rắn (d ≥ 8) dùng cùng luật. | PO (tự quyết) |
 | 9 | Phase 2 | DayIntro/EveningIntro/DayResult có làm dừng mô phỏng không? | Chỉ ở cửa sổ chơi: máy chủ giữ (không bước) khi đổi pha cho tới khi người chơi bấm tiếp; headless không có màn này nên tick không đổi. | PO (tự quyết) |
+| 10 | Phase 3 | Khi nhiều đơn cùng có hàng giữ vừa ươn: nhả hết rồi mới giữ lại, hay xử lý từng đơn? | Giả định: xử lý từng đơn theo `order_tick` rồi id bàn — nhả toàn bộ phần giữ của đơn đó rồi giữ lại đúng một lần trước khi sang đơn kế. | PO (tự quyết) |
+| 11 | Phase 3 | "Đủ độ chính xác khi đọc lại" cho file kho là bao nhiêu chữ số? | Ghi `fresh = units / 240` bằng float đầy đủ (repr Python, đọc lại `round(fresh × 240)` ra đúng đơn vị); JSONL vẫn làm tròn 3 chữ số (dung sai ±0.01). | PO (tự quyết) |
+| 12 | Phase 3 | Ngày 1 trong `day` giữ id mẫu `gather.hold`, id hàng mới bắt đầu từ đâu? | Bộ cấp id `I` nạp trước id của mẫu, nên hàng mới nối sau hậu tố lớn nhất (mẫu `I1` → hàng mới `I2`); Ngày kế cấp id mới cho mẫu theo thứ tự mảng. | PO (tự quyết) |
+| 13 | Phase 3 | Có làm mở rộng `current`, `reservations` không? | Không: nhóm 2 người, ưu tiên lõi đúng trong 35 phút (ADR 0001 mục 6). | Nghị + An |

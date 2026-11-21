@@ -22,7 +22,7 @@
 | HUD độ tươi; test ngưỡng, giữ lại khi ươn, chốt giá, bàn giao | Nghị (sáng + bàn giao), An (quán + giữ + giá) |
 | Ghi tác động, quyết định schema, thứ tự tích hợp | Nghị (ADR, bảng này) |
 | `CHANGELOG.md` breaking change | Nghị |
-| `verification/phase-3.md`, bằng chứng, regression | An |
+| `verification/phase-3.md`, bằng chứng, regression | An → Nghị (đổi người cuối phase để kịp hạn tag) |
 | `clarify.md`, nhật ký AI | cả hai |
 | Gộp `main` + tag `phase-3` | Nghị |
 
