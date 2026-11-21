@@ -54,3 +54,22 @@ Hết giờ mỗi phase thì gắn tag rồi đi tiếp; chỗ chưa xong ghi tr
 
 - Dùng AI thoải mái; **không sao chép repo của nhóm khác**; bằng chứng phải thật.
 - Nhân vật, bối cảnh là bản gốc của lab; asset ngoài chỉ dùng CC0/CC-BY/MIT hoặc tự tạo, ghi nguồn trong `CREDITS.md`. Không commit API key, token, `.env`.
+
+---
+
+# Nhóm SLLV — Quán Ăn Chợ Nổi (Phase 1)
+
+**Chạy từ clone sạch (Python 3, không cần cài gì):**
+```bash
+PYTHONPATH=tests:. python3 -m unittest discover -s tests -v      # test của nhóm, 1 lệnh
+python3 -m chonoi.live --mode gather                             # chơi buổi sáng (mở địa chỉ in ra); --mode quan cho buổi tối
+python3 -m chonoi.headless --mode gather --seed 1 --ticks 600 --out out.jsonl   # headless theo Test Contract
+```
+
+**Điều khiển:** WASD / mũi tên để bơi hoặc đi, `E` tương tác (cập bến, hái, nấu, bưng, phục vụ), `Space` bắt cá, `R` chơi lại.
+
+**Cách tính điểm:** `score = earned + 100 × floor(reputation)`. Boa = `floor(giá món × 0.2)` nếu phục vụ khi kiên nhẫn còn ≥ 50%. Khách bỏ đi −0.5 uy tín, boa dương +0.2 uy tín, uy tín kẹp [0, 5].
+
+**Hợp đồng kho (gather → quan):** file `{"items":{"<kind>":<số nguyên >= 0>}}`, ví dụ `docs/contracts/inventory.sample.json`. Gather ghi một lần khi kết thúc (ngất ghi rỗng); quan đọc bằng `--inventory`.
+
+**Sáng tạo của nhóm:** chưa có (làm lõi đúng trước).

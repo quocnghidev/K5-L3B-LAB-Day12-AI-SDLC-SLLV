@@ -1,0 +1,13 @@
+gather exit=0
+kho: {"items":{"bong_sung":2,"ca_loc":1}}
+quan exit=0
+stock tick0: {'bong_sung': 2, 'ca_loc': 1}
+full shift exit=0
+   3 "name":"customer_arrived"
+   3 "name":"customer_left"
+   1 "name":"quan_end"
+{"type":"end","ticks":10800,"sim_tick":10800,"mode":"quan","state":"finished","reason":"time","money":0,"earned":0,"reputation":2.0,"score":200}
+gather: cùng seed -> giống từng byte
+{"type":"end","ticks":10800,"sim_tick":10800,"mode":"gather","state":"finished","reason":"time","money":0,"earned":0,"reputation":3.0,"score":300}
+quan: cùng seed -> giống từng byte
+{"type":"end","ticks":10800,"sim_tick":10800,"mode":"quan","state":"finished","reason":"time","money":0,"earned":0,"reputation":3.0,"score":300}
