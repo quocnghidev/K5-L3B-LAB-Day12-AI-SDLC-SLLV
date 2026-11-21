@@ -59,6 +59,10 @@ class DaySim:
         self.plan_overrides = {p["day"]: p for p in d.get("day_plan", [])}
         self.day = 0
         self.days_completed = 0
+        # v1.2: id cá thể I<n> tăng xuyên pha và Ngày (kể cả khi cá thể cũ đã dùng/bỏ)
+        self.item_ids = IdAllocator()
+        for it in self.tpl_gather.get("hold", []):
+            self.item_ids.reserve(it["id"])
         self.cur = None
         self.phase = None
         self.phase_tick = 0
@@ -115,7 +119,10 @@ class DaySim:
         self.plan = plan_for(self.tuning, self.day, self.plan_overrides)
         out.append(("day_start", {}, "gather", self.day))
         out.append(("day_plan", copy.deepcopy(self.plan), "gather", self.day))
-        sim = GatherSim(self._tuning_for_day(), copy.deepcopy(self.tpl_gather), self.streams, IdAllocator(), day=self.day)
+        tpl = copy.deepcopy(self.tpl_gather)
+        if self.day > 1 and "hold" in tpl:  # Ngày kế: cấp id mới theo thứ tự mảng, giữ kind/fresh ban đầu
+            tpl["hold"] = [dict(it, id=self.item_ids.new("I")) for it in tpl["hold"]]
+        sim = GatherSim(self._tuning_for_day(), tpl, self.streams, IdAllocator(), day=self.day, item_ids=self.item_ids)
         self._carry(sim)
         self._enter("gather", sim, out)
 
@@ -140,7 +147,7 @@ class DaySim:
                           reputation=self._reputation)
             self._enter("quan", sim, out)
         elif self.phase == "quan":
-            stock = {k: v for k, v in sorted(self.cur.stock.items()) if v > 0}
+            stock = [dict(it) for it in self.cur.stock]  # v1.2: cá thể dư (hàng thô ở Shop không hao)
             sim = self.shop_factory(self.tuning, self._money, self._earned, self._reputation,
                                     dict(self.upgrades), stock)
             self._enter("shop", sim, out)

@@ -12,7 +12,7 @@ T = C["tuning"]
 
 class StandardData(unittest.TestCase):
     def test_version_and_rooms(self):
-        self.assertEqual(C["contract_version"], "1.1")
+        self.assertEqual(C["contract_version"], "1.2")  # Ticket-03 nâng lên v1.2; dữ liệu v1.1 giữ nguyên
         self.assertEqual([s["id"] for s in T["quan"]["stoves"]], ["B1", "B2"])
         self.assertEqual([t["id"] for t in T["quan"]["tables"]], ["T1", "T2", "T3", "T4"])
 
@@ -42,11 +42,14 @@ class StandardData(unittest.TestCase):
 class NewIngredients(unittest.TestCase):
     def test_quan_reads_inventory_with_new_kinds(self):
         with Workdir() as w:
-            inv = write_json(w.path("inv.json"), {"items": {"ca_keo": 2, "keo_neo": 1}})
+            inv = write_json(w.path("inv.json"), {"items": [{"id": "I1", "kind": "ca_keo", "fresh": 100},
+                                                            {"id": "I2", "kind": "ca_keo", "fresh": 50},
+                                                            {"id": "I3", "kind": "keo_neo", "fresh": 100}]})
             code, err = run_headless("--mode", "quan", "--seed", "1", "--ticks", "0", "--inventory", inv,
                                      "--out", w.path("q.jsonl"))
             self.assertEqual(code, 0, err)
-            self.assertEqual(snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"], {"ca_keo": 2, "keo_neo": 1})
+            stock = snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"]
+            self.assertEqual([(x["id"], x["kind"]) for x in stock], [("I1", "ca_keo"), ("I2", "ca_keo"), ("I3", "keo_neo")])
 
     def test_gather_default_has_keo_neo_nodes(self):
         with Workdir() as w:

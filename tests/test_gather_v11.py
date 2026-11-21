@@ -4,7 +4,7 @@ import json
 import math
 import unittest
 
-from helpers import Workdir, close, events, frames, read_jsonl, run_headless, snapshots, write_json
+from helpers import Workdir, close, events, frames, items, read_jsonl, run_headless, snapshots, write_json
 
 with open("game.contract.json", encoding="utf-8") as _f:
     G = json.load(_f)["tuning"]["gather"]
@@ -155,15 +155,15 @@ class Crocodile(unittest.TestCase):
 
     def test_hit_loses_hp_half_hold_lifo_and_recoils(self):
         with Workdir() as w:
-            hold = ["ca_loc", "bong_sung", "ca_linh", "ca_linh", "keo_neo"]
+            hold = items("ca_loc", "bong_sung", "ca_linh", "ca_linh", "keo_neo")
             sc = {"random_fish": False, "hold": hold, "player": {"pos": [61, 24]}}
             rows = run(w, sc, ticks=62)
             hit = ev(rows, "monster_hit")
             self.assertEqual(len(hit), 1)
             t, d = hit[0]
-            self.assertEqual((t, d["monster_id"], d["hp"], d["lost"]), (1, "M1", 2, ["keo_neo", "ca_linh"]))
+            self.assertEqual((t, d["monster_id"], d["hp"], [x["id"] for x in d["lost"]]), (1, "M1", 2, ["I5", "I4"]))
             s = snap(rows)
-            self.assertEqual(s[1]["hold"], hold[:3])
+            self.assertEqual([x["id"] for x in s[1]["hold"]], ["I1", "I2", "I3"])
             self.assertEqual(s[1]["player"]["invuln_ticks"], G["monsters"]["invuln_ticks"])
             m1 = s[1]["monsters"][0]
             self.assertEqual((m1["state"], m1["state_ticks_left"], m1["recoil_dir"]), ("recoil", SP["recoil_ticks"], [-1, 0]))
@@ -182,11 +182,12 @@ class Crocodile(unittest.TestCase):
 
     def test_faint_by_monster(self):
         with Workdir() as w:
-            sc = {"random_fish": False, "hold": ["ca_loc", "bong_sung", "ca_linh"], "player": {"pos": [61, 24], "hp": 1}}
+            sc = {"random_fish": False, "hold": items("ca_loc", "bong_sung", "ca_linh"), "player": {"pos": [61, 24], "hp": 1}}
             rows = run(w, sc, ticks=10)
-            self.assertEqual(ev(rows, "monster_hit")[0][1]["lost"], ["ca_linh"])
-            self.assertEqual(ev(rows, "faint"), [(1, {"cause": "monster", "lost": ["bong_sung", "ca_loc"], "hp": 0})])
-            self.assertEqual(ev(rows, "gather_end"), [(1, {"reason": "fainted", "inventory": {"items": {}}})])
+            self.assertEqual([x["id"] for x in ev(rows, "monster_hit")[0][1]["lost"]], ["I3"])
+            faint = ev(rows, "faint")[0]
+            self.assertEqual((faint[0], faint[1]["cause"], [x["id"] for x in faint[1]["lost"]]), (1, "monster", ["I2", "I1"]))
+            self.assertEqual(ev(rows, "gather_end"), [(1, {"reason": "fainted", "inventory": {"items": []}})])
 
     def test_bad_monster_fixture_exit_2(self):
         bad = [{"id": "M1", "kind": "ca_sau", "pos": [60, 24], "waypoints": [[60, 24], [64, 24]], "state": "recoil"},

@@ -1,0 +1,14 @@
+[ngưỡng 30] exit=0
+{"type":"event","tick":1,"phase":"gather","name":"spoiled","data":{"item_id":"I1","kind":"ca_linh","location":"hold"}}
+[bàn giao] gather exit=0
+kho.json: {"items":[{"id":"I1","kind":"ca_linh","fresh":99.99166666666666}]}
+[bàn giao] quan exit=0
+quan tick0 stock: [{'id': 'I1', 'kind': 'ca_linh', 'fresh': 99.992}]
+khớp id/kind/fresh(±0.01): True
+đầu vào sai: file kho đếm theo loại (v1.1) không còn hợp lệ ở Contract v1.2: cần mảng cá thể
+[kho đếm v1.1] exit=2 (mong đợi 2)
+[day --days 1] exit=0 thời gian=1.48s
+{"type":"end","ticks":22200,"sim_tick":22200,"mode":"day","state":"finished","reason":"days_complete","money":0,"earned":0,"reputation":3.0,"score":300,"days_completed":1}
+[day --days 3] exit=0 thời gian=3.82s
+{"type":"end","ticks":66600,"sim_tick":66600,"mode":"day","state":"finished","reason":"days_complete","money":0,"earned":0,"reputation":3.0,"score":300,"days_completed":3}
+[day] cùng seed giống từng byte
