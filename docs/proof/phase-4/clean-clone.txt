@@ -1,0 +1,12 @@
+$ git clone <repo> K5-L3B-LAB-Day12-AI-SDLC-SLLV   (clone sạch nhánh p4 @ fe87a8e)
+exit=0
+$ cd K5-L3B-LAB-Day12-AI-SDLC-SLLV
+$ python3 -m chonoi.live --mode day --days 5 --port 8765   (lệnh 3: chơi trên trình duyệt)
+Mở trình duyệt tại http://127.0.0.1:8765/  (chế độ day, seed 1). Ctrl+C để dừng.
+GET /state -> day day 1 intro menu
+GET / -> True
+Đã thoát (nút Thoát).
+--- kiểm thêm trên clone: test, headless, soak
+OK
+headless day exit=0
+soak: 2/2 Ngày, crashes=0, 0.971 s

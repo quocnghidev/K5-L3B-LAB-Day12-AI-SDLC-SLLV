@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.0.0 — Phase 4, Contract v1.3 (Ticket-04)
+
+### Thêm
+- `bench_cmd` (`python3 -m chonoi.bench --seed --duration --out`): đo FPS có render bằng Chrome/Chromium headless 1280×720,
+  cảnh lặn seed 42, làm nóng 3 s; `bench.json {avg_fps, p1_low_fps, frames, measured_s, load_ms}`.
+- `soak_cmd` (`python3 -m chonoi.soak --seed --days --out`): N Ngày trong một tiến trình bằng bot tất định, D1–D5 lặp ở Ngày 6–10;
+  `soak.json {days, days_completed, crashes, results[{day, earned, reputation, score}], duration_s}`.
+- Cảnh báo chữ + biểu tượng: thủy quái gần, oxy sắp hết, khách sắp giận; chế độ tương phản cao (`H`, `?contrast=1`).
+- README: yêu cầu môi trường, chạy 3 lệnh từ clone sạch, lệnh test/headless/bench/soak. CREDITS rà lại.
+
+### Đổi
+- `contract_version: "1.3"`; gameplay, tuning, kho và JSONL giữ như v1.2.
+- `plan_for`: Ngày > 5 dùng lại kế hoạch D1–D5.
+
 ## Unreleased
 
 ## Phase 3 — Contract v1.2 "Mùa Nước Nổi" (Ticket-03)

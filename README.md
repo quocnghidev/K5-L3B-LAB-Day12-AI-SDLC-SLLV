@@ -57,27 +57,43 @@ Hết giờ mỗi phase thì gắn tag rồi đi tiếp; chỗ chưa xong ghi tr
 
 ---
 
-# Nhóm SLLV — Quán Ăn Chợ Nổi (Test Contract v1.2)
+# Nhóm SLLV — Quán Ăn Chợ Nổi v1.0.0 (Test Contract v1.3)
 
-**Chạy từ clone sạch (Python 3, không cần cài gì):**
+**Yêu cầu môi trường:** macOS hoặc Linux, Python 3 (chỉ thư viện chuẩn, không cần cài gói; đã kiểm trên Python 3.12),
+một trình duyệt để chơi. Benchmark cần Google Chrome/Chromium (tự tìm, hoặc đặt `CHROME=<đường dẫn>`).
+
+**Chạy từ clone sạch (3 lệnh):**
 ```bash
-PYTHONPATH=tests:. python3 -m unittest discover -s tests -v      # test của nhóm, 1 lệnh
-python3 -m chonoi.live --mode day --days 5                       # chơi trọn vòng ngày (mở địa chỉ in ra)
-python3 -m chonoi.headless --mode day --days 1 --seed 1 --ticks 22200 --out day.jsonl   # headless theo Test Contract
+git clone https://github.com/quocnghidev/K5-L3B-LAB-Day12-AI-SDLC-SLLV.git
+cd K5-L3B-LAB-Day12-AI-SDLC-SLLV
+python3 -m chonoi.live --mode day --days 5          # mở địa chỉ in ra (mặc định http://127.0.0.1:8000/)
 ```
-Chơi riêng từng buổi: `python3 -m chonoi.live --mode gather --inventory-out kho.json`, rồi `--mode quan --inventory kho.json`.
+Bản đóng gói ở GitHub Release `v1.0.0` (`cho-noi-v1.0.0.tar.gz`): giải nén, `cd cho-noi-v1.0.0`, chạy lệnh 3 ở trên.
 
-**Điều khiển:** WASD / mũi tên bơi hoặc đi · `E` tương tác (cập bến, hái, nấu, bưng, phục vụ) · `Space` bắt cá · `Esc`/`P` tạm dừng (`M` về menu) ·
+| Việc | Lệnh |
+|---|---|
+| Test (1 lệnh) | `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v` |
+| Headless (Test Contract) | `python3 -m chonoi.headless --mode day --days 1 --seed 1 --ticks 22200 --out day.jsonl` (`--mode gather|quan|day`) |
+| Benchmark có render | `python3 -m chonoi.bench --seed 42 --duration 30 --out bench.json` |
+| Soak headless | `python3 -m chonoi.soak --seed 7 --days 10 --out soak.json` |
+| Chơi riêng từng buổi | `python3 -m chonoi.live --mode gather --inventory-out kho.json`, rồi `--mode quan --inventory kho.json` |
+
+**Điều khiển:** WASD / mũi tên bơi hoặc đi · `E` tương tác (cập bến, hái, nấu, bưng, phục vụ) · `Space` bắt cá ·
+`Esc`/`P` tạm dừng (`M` về menu) · `H` bật/tắt **tương phản cao** (hoặc mở `?contrast=1`) ·
 trong Shop `1` mua bình oxy, `2` mua áo phao, `Enter` đóng Shop · màn hình giới thiệu `Enter` để tiếp · `R` chơi lại (chỉ `gather`/`quan`).
 
 **Vòng ngày:** Menu → DayIntro (Má Tư đọc món và nguyên liệu cần lấy) → lặn & hái → EveningIntro → mở quán → DayResult → Shop → Ngày kế; sau Ngày cuối là Summary.
 Cấp nâng cấp mua trong Shop có hiệu lực từ Ngày kế.
 
-**Cách tính điểm:** `score = earned + 100 × floor(reputation)`. Boa = `floor(giá món × 0.2)` nếu phục vụ khi kiên nhẫn còn ≥ 50%. Khách bỏ đi −0.5 uy tín, boa dương +0.2 uy tín, uy tín kẹp [0, 5].
+**Cảnh báo:** banner chữ + biểu tượng ⚠ cho *thủy quái gần*, *oxy sắp hết* (< 25%) và *khách sắp giận* (kiên nhẫn < 25%, thêm "!" trên đầu khách).
 
 **Độ tươi (v1.2):** nguyên liệu hao 0.5/s trong giỏ, 0.25/s trong kho quán; dưới 30 là ươn (ô xám "ươn" trên HUD, không nấu được).
 Giá món = `floor(giá niêm yết × trung bình độ tươi / 100)`.
 
-**Hợp đồng tích hợp:** `docs/contracts/README.md` (file kho cá thể `{"items":[{"id":"I1","kind":"ca_loc","fresh":100}]}`, ví dụ `docs/contracts/inventory.sample.json`; giao diện `ShopSim`/`QuanSim` cho `day`). Thay đổi phá vỡ: `CHANGELOG.md`.
+**Cách tính điểm:** `score = earned + 100 × floor(reputation)`. Boa = `floor(giá món đã chốt × 0.2)` nếu phục vụ khi kiên nhẫn còn ≥ 50%. Khách bỏ đi −0.5 uy tín, boa dương +0.2 uy tín, uy tín kẹp [0, 5].
+
+**Hợp đồng tích hợp:** `docs/contracts/README.md` (file kho cá thể `{"items":[{"id":"I1","kind":"ca_loc","fresh":100}]}`, ví dụ `docs/contracts/inventory.sample.json`). Thay đổi theo phase: `CHANGELOG.md`. Kiểm chứng: `docs/verification/phase-1.md` … `phase-4.md`.
+
+**Mở rộng:** không làm (nhóm 2 người, ưu tiên lõi đúng).
 
 **Sáng tạo của nhóm:** chưa có (làm lõi đúng trước).
