@@ -3,7 +3,7 @@
 import json
 import unittest
 
-from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
+from helpers import Workdir, events, frames, items, kinds_of, read_jsonl, run_headless, snapshots, write_json
 
 with open("game.contract.json", encoding="utf-8") as _f:
     G = json.load(_f)["tuning"]["gather"]
@@ -67,16 +67,19 @@ class Oxygen(unittest.TestCase):
 
     def test_faint_loses_hold_lifo_and_writes_empty_inventory(self):
         with Workdir() as w:
-            sc = {"player": {"pos": [50, 10], "oxygen_ticks": 0, "hp": 1}, "hold": ["ca_loc", "bong_sung", "ca_linh"],
+            sc = {"player": {"pos": [50, 10], "oxygen_ticks": 0, "hp": 1}, "hold": items("ca_loc", "bong_sung", "ca_linh"),
                   "random_fish": False}
             rows = run(w, sc, None, ticks=300, inv=True)
             self.assertEqual(ev(rows, "choke"), [(60, {"hp": 0})])
-            self.assertEqual(ev(rows, "faint"), [(60, {"cause": "choke", "lost": ["ca_linh", "bong_sung", "ca_loc"], "hp": 0})])
+            faint = ev(rows, "faint")
+            self.assertEqual([(t, d["cause"], d["hp"]) for t, d in faint], [(60, "choke", 0)])
+            # v1.2: lost là mảng cá thể theo thứ tự bỏ LIFO (I3 vào giỏ sau cùng mất trước)
+            self.assertEqual([x["id"] for x in faint[0][1]["lost"]], ["I3", "I2", "I1"])
             end = ev(rows, "gather_end")
-            self.assertEqual(end, [(60, {"reason": "fainted", "inventory": {"items": {}}})])
+            self.assertEqual(end, [(60, {"reason": "fainted", "inventory": {"items": []}})])
             self.assertEqual(rows[-1]["reason"], "fainted")
             with open(w.path("inv.json"), encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {}})
+                self.assertEqual(json.load(f), {"items": []})
 
     def test_surfacing_on_choke_step_saves_player(self):
         with Workdir() as w:
@@ -97,7 +100,7 @@ class Gathering(unittest.TestCase):
             inp = frames({"tick": 0, "interact": True}, {"tick": 1, "interact": False})
             rows = run(w, sc, inp, ticks=G["regrow_s"] * 60 + 5, inv=False)
             self.assertEqual(ev(rows, "gather")[0], (1, {"node_id": "N1", "kind": "bong_dien_dien", "amount": 1}))
-            self.assertEqual(snapshots(rows)[1]["hold"] if len(snapshots(rows)) > 1 else None, ["bong_dien_dien"])
+            self.assertEqual(kinds_of(snapshots(rows)[1]["hold"]), ["bong_dien_dien"])
             self.assertEqual(ev(rows, "node_regrown")[0][0], 1 + G["regrow_s"] * 60)
 
     def test_node_out_of_radius_ignored(self):
@@ -124,7 +127,7 @@ class Gathering(unittest.TestCase):
 
     def test_hold_full_when_gathering(self):
         with Workdir() as w:
-            sc = {"player": {"pos": [20, 0]}, "hold": ["ca_loc"] * G["hold_capacity"], "random_fish": False,
+            sc = {"player": {"pos": [20, 0]}, "hold": items(*["ca_loc"] * G["hold_capacity"]), "random_fish": False,
                   "nodes": [{"id": "N1", "kind": "bong_sung", "pos": [20, 0]}]}
             rows = run(w, sc, frames({"tick": 0, "interact": True}), ticks=2)
             self.assertEqual(ev(rows, "hold_full"), [(1, {"action": "gather", "node_id": "N1", "required": 1, "free": 0})])
@@ -142,7 +145,7 @@ class Catching(unittest.TestCase):
             self.assertEqual(ev(rows, "fish_caught")[0], (1, {"fish_id": "F1", "kind": "ca_linh", "yield": 3}))
             self.assertEqual(len(ev(rows, "fish_caught")), 1, "đang hồi chiêu 30 tick: lần bấm ở tick 10 bị bỏ qua")
             snap = {s["tick"]: s for s in snapshots(rows)}
-            self.assertEqual(snap[1]["hold"], ["ca_linh"] * 3)
+            self.assertEqual(snap[1]["hold"], items("ca_linh", "ca_linh", "ca_linh"))  # mới bắt: fresh 100
             self.assertEqual([f["id"] for f in snap[1]["fish"]], ["F2"])
             self.assertEqual(snap[1]["player"]["catch_cd_ticks"], 30)
 
@@ -156,7 +159,7 @@ class Catching(unittest.TestCase):
     def test_catch_hold_full_keeps_fish_and_no_cooldown(self):
         with Workdir() as w:
             sc = {"player": {"pos": [20, 5]}, "fish": self.FISH, "random_fish": False, "nodes": [],
-                  "hold": ["bong_sung"] * (G["hold_capacity"] - 2)}
+                  "hold": items(*["bong_sung"] * (G["hold_capacity"] - 2))}
             rows = run(w, sc, frames({"tick": 0, "catch": True}), ticks=2)
             self.assertEqual(ev(rows, "hold_full"), [(1, {"action": "catch", "fish_id": "F1", "required": 3, "free": 2})])
             last = snapshots(rows)[-1]
@@ -182,11 +185,11 @@ class Docking(unittest.TestCase):
     def test_dock_edge_beats_gather_and_writes_inventory(self):
         with Workdir() as w:
             # bến tâm [2,0], bán kính 3: đứng ở x=5 là đúng mép; nút N1 cũng ở cùng chỗ nhưng bến xét trước
-            sc = {"player": {"pos": [5, 0]}, "hold": ["ca_loc"], "random_fish": False,
+            sc = {"player": {"pos": [5, 0]}, "hold": items("ca_loc"), "random_fish": False,
                   "nodes": [{"id": "N1", "kind": "bong_sung", "pos": [5, 0]}]}
             rows = run(w, sc, frames({"tick": 0, "interact": True}), ticks=50, inv=True)
             self.assertEqual(ev(rows, "gather"), [])
-            self.assertEqual(ev(rows, "gather_end"), [(1, {"reason": "docked", "inventory": {"items": {"ca_loc": 1}}})])
+            self.assertEqual(ev(rows, "gather_end"), [(1, {"reason": "docked", "inventory": {"items": [{"id": "I1", "kind": "ca_loc", "fresh": 99.992}]}})])
             self.assertEqual(rows[-1]["reason"], "docked")
 
     def test_time_end_after_catch_keeps_new_fish(self):
@@ -194,9 +197,9 @@ class Docking(unittest.TestCase):
             sc = {"player": {"pos": [20, 5]}, "time_left_ticks": 1, "random_fish": False, "nodes": [],
                   "fish": [{"id": "F1", "kind": "ca_loc", "pos": [20, 5]}]}
             rows = run(w, sc, frames({"tick": 0, "catch": True}), ticks=5, inv=True)
-            self.assertEqual(ev(rows, "gather_end"), [(1, {"reason": "time", "inventory": {"items": {"ca_loc": 1}}})])
+            self.assertEqual(ev(rows, "gather_end"), [(1, {"reason": "time", "inventory": {"items": [{"id": "I1", "kind": "ca_loc", "fresh": 100}]}})])
             with open(w.path("inv.json"), encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {"ca_loc": 1}})
+                self.assertEqual(json.load(f), {"items": [{"id": "I1", "kind": "ca_loc", "fresh": 100.0}]})
 
 
 if __name__ == "__main__":
