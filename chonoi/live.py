@@ -51,6 +51,8 @@ class LiveGame:
         self._lock = threading.Lock()
         self._stop = threading.Event()
         self.quit_requested = threading.Event()
+        self.bench = {}  # chonoi.bench: trang báo khung đầu tiên / kết quả đo qua POST /bench
+        self.bench_done = threading.Event()
         self._thread = None
         self._reset()
 
@@ -199,6 +201,20 @@ class LiveGame:
         with self._lock:
             self._reset()
 
+    def bench_report(self, body: dict):
+        if body.get("event") == "first_frame":
+            self.bench.setdefault("first_frame_ms", body.get("t"))
+        elif body.get("event") == "result":
+            for k in ("frames", "measured_s", "p1_low_fps"):
+                v = body.get(k)
+                if isinstance(v, bool) or not isinstance(v, (int, float)):
+                    raise ValueError(f"bench: {k} phải là số")
+            self.bench.update(frames=int(body["frames"]), measured_s=float(body["measured_s"]),
+                              p1_low_fps=float(body["p1_low_fps"]))
+            self.bench_done.set()
+        else:
+            raise ValueError("bench: event lạ")
+
 
 class _Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
@@ -253,6 +269,11 @@ class _Handler(BaseHTTPRequestHandler):
                 self.game.restart()
             elif path == "/quit":
                 self.game.quit_requested.set()
+            elif path == "/bench":
+                body = json.loads(raw.decode("utf-8") or "{}")
+                if not isinstance(body, dict):
+                    raise ValueError("body phải là object")
+                self.game.bench_report(body)
             else:
                 self._send(404, b'{"error":"khong co"}')
                 return

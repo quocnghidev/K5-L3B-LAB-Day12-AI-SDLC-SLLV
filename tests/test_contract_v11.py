@@ -12,7 +12,7 @@ T = C["tuning"]
 
 class StandardData(unittest.TestCase):
     def test_version_and_rooms(self):
-        self.assertEqual(C["contract_version"], "1.2")  # Ticket-03 nâng lên v1.2; dữ liệu v1.1 giữ nguyên
+        self.assertEqual(C["contract_version"], "1.3")  # Ticket-04 nâng lên v1.3 (thêm bench/soak); dữ liệu v1.1 giữ nguyên
         self.assertEqual([s["id"] for s in T["quan"]["stoves"]], ["B1", "B2"])
         self.assertEqual([t["id"] for t in T["quan"]["tables"]], ["T1", "T2", "T3", "T4"])
 
