@@ -6,3 +6,8 @@
 | 2 | Phase 1 | Khách ở `waiting` thì `base_price` trong snapshot là gì trước khi bếp "chốt giá"? | Giả định: gán giá menu lúc khách đến (menu cố định nên bằng giá chốt khi nấu); `tip` = 0 tới lúc phục vụ. | PO (tự quyết) |
 | 3 | Phase 1 | `catch` khi giỏ thiếu chỗ: "giữ đàn và cooldown" nghĩa là gì? | Giả định: giữ đàn, hồi chiêu giữ nguyên giá trị hiện tại (không đặt lại), chỉ phát `hold_full`. | PO (tự quyết) |
 | 4 | Phase 1 | Snapshot `quan.player` có `vel` không? | Có `pos` và `vel` (mục E nói "player theo D"). | PO (tự quyết) |
+| 5 | Phase 2 | `recoil_dist` trong contract là gì? Ticket chỉ nói "mỗi bước 2/60 m". | Giả định: tổng quãng lùi = 2 m, mỗi bước `recoil_dist / recoil_ticks` = 2/60 m. | PO (tự quyết) |
+| 6 | Phase 2 | 8 đàn đầu ca chọn loài/điểm thế nào? | Giả định: lặp 8 lần luật sinh cá (trọng số loài chuẩn hóa theo loài còn điểm, điểm đều, cách đàn đang sống > 1 m) → 8 điểm hình học khác nhau. | PO (tự quyết) |
+| 7 | Phase 2 | Cá Sấu "đến" waypoint khi nào nếu số thực lệch vài ulp? | Coi như tới khi quãng còn lại ≤ bước + 1e-9 (240 bước × 1/60 m = đúng 4 m). | PO (tự quyết) |
+| 8 | Phase 2 | Ngưỡng "người chơi ở d ≥ 10" để Cá Sấu đuổi/chạm lấy từ đâu? | Lấy cận dưới `depths` của loài (Cá Sấu 10), để mở rộng Rắn (d ≥ 8) dùng cùng luật. | PO (tự quyết) |
+| 9 | Phase 2 | DayIntro/EveningIntro/DayResult có làm dừng mô phỏng không? | Chỉ ở cửa sổ chơi: máy chủ giữ (không bước) khi đổi pha cho tới khi người chơi bấm tiếp; headless không có màn này nên tick không đổi. | PO (tự quyết) |

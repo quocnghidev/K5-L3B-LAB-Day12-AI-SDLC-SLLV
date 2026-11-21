@@ -38,9 +38,15 @@ class ShopSim:
 Event Shop trả dạng `(name, data)` như gather/quan; `day` tự gắn `phase`/`day`.
 
 ## 4b. Quán trong `day` (An, lát 3)
-`day` dựng `QuanSim(...)` rồi gán `sim.plan_dishes = set(id món trong kế hoạch Ngày)` và `money/earned/reputation`
-xuyên Ngày. Quán chạy riêng không có thuộc tính này (= cả 6 món). Lát 3 cần lọc món theo `plan_dishes`
-trước khi lọc nguyên liệu khả dụng.
+`day` dựng `QuanSim(tuning, tpl_quan, streams, ids, inventory=kho bàn giao, plan_dishes=set(món kế hoạch),
+money=..., earned=..., reputation=...)`. Quán chạy riêng không truyền `plan_dishes` (= cả 6 món). Quán lọc món theo
+`plan_dishes` trước khi lọc nguyên liệu khả dụng, và kiểm khách fixture gọi món ngoài kế hoạch → mã 2.
+
+## 4c. Cửa sổ chơi (`chonoi/live.py`)
+`GET /state` = snapshot + `meta`, `events`, `ui_hold`/`intro` (màn hình chờ: `menu`, `day`, `evening`, `result`),
+`stats`/`totals` (DayResult, Summary). `POST /input` nhận thêm `pause`, `shop_done`, `buy`; `POST /control`
+`{"hold": false}` / `{"intro": "day"}` / `{"menu": true}`; `POST /quit`. `ui_hold` chỉ là màn hình chờ của UI,
+headless không có.
 
 ## 5. Sự kiện
 | Sự kiện | `data` | Phát ở |

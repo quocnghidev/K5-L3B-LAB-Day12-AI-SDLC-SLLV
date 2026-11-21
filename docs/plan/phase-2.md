@@ -14,5 +14,6 @@
 | QA | Kiểm chứng | Smoke tích hợp phút 20 (`docs/proof/phase-2/integration.*`), regression P1 với số chuẩn, `docs/verification/phase-2.md` | AC-P2-15 | **An** | 1, 3 |
 | R | Retro | `docs/retro.md` mục Phase 2 (một hành động có người nhận) | — | cả hai | — |
 
-- **Ngoài phạm vi trước:** menu/HUD đầy đủ ở `chonoi/web/` làm sau khi headless đúng; mở rộng (Lao, Vợt…) không bắt buộc với nhóm 2 người.
+- **UI vòng ngày (DoD mục 2):** menu, DayIntro/EveningIntro/DayResult/Shop/Summary, pause, HUD — Nghị (`chonoi/live.py`, `chonoi/web/index.html`), làm sau khi headless đúng. Mở rộng (Lao, Vợt…) không bắt buộc với nhóm 2 người.
+- **Trạng thái cuối phase:** lát 0/1/2/4b (Nghị) và lát 3/4a/QA (An) đã tích hợp trên `main`; xem `docs/verification/phase-2.md`.
 - **Rủi ro:** lát 4b phụ thuộc cả ba lát kia → An đưa fixture Shop/quán sớm; test P1 đổi vì số chuẩn phải ghi lý do trong commit.
