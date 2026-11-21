@@ -23,22 +23,22 @@ from .sim.gather import GatherSim
 from .sim.quan import QuanSim
 
 
-def build_sim(mode, tuning, scenario, seed, inventory, days=1, shop_factory=None):
+def build_sim(mode, tuning, scenario, seed, inventory, days=1, shop_factory=None, creative=False):
     streams, ids = Streams(seed), IdAllocator()
     if mode == "gather":
-        return GatherSim(tuning, scenario, streams, ids)
+        return GatherSim(tuning, scenario, streams, ids, creative=creative)
     if mode == "day":
-        return DaySim(tuning, scenario, streams, days=days, shop_factory=shop_factory)
+        return DaySim(tuning, scenario, streams, days=days, shop_factory=shop_factory, creative=creative)
     return QuanSim(tuning, scenario, streams, ids, inventory=inventory)
 
 
 class Session:
     """Một lượt chơi: dựng sim, bước từng tick, lấy snapshot / dòng end."""
 
-    def __init__(self, mode, tuning, scenario, seed, inventory=None, days=1, shop_factory=None):
+    def __init__(self, mode, tuning, scenario, seed, inventory=None, days=1, shop_factory=None, creative=False):
         self.mode = mode
         self.tuning = tuning
-        self.sim = build_sim(mode, tuning, scenario, seed, inventory, days, shop_factory)
+        self.sim = build_sim(mode, tuning, scenario, seed, inventory, days, shop_factory, creative=creative)
         self.tick = 0
         self.sim_tick = 0
         self.paused = False

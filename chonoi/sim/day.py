@@ -44,10 +44,11 @@ def plan_for(tuning, day, overrides=None):
 class DaySim:
     mode = "day"
 
-    def __init__(self, tuning, scenario, streams, days=1, shop_factory=None):
+    def __init__(self, tuning, scenario, streams, days=1, shop_factory=None, creative=False):
         self.tuning = tuning
         self.streams = streams
         self.days = days
+        self.creative = creative
         self.shop_factory = shop_factory or default_shop_factory
         self.tpl_gather = scenario.get("gather", {})
         self.tpl_quan = scenario.get("quan", {})
@@ -123,7 +124,7 @@ class DaySim:
         tpl = copy.deepcopy(self.tpl_gather)
         if self.day > 1 and "hold" in tpl:  # Ngày kế: cấp id mới theo thứ tự mảng, giữ kind/fresh ban đầu
             tpl["hold"] = [dict(it, id=self.item_ids.new("I")) for it in tpl["hold"]]
-        sim = GatherSim(self._tuning_for_day(), tpl, self.streams, IdAllocator(), day=self.day, item_ids=self.item_ids)
+        sim = GatherSim(self._tuning_for_day(), tpl, self.streams, IdAllocator(), day=self.day, item_ids=self.item_ids, creative=self.creative)
         self._carry(sim)
         self._enter("gather", sim, out)
 
@@ -136,6 +137,12 @@ class DaySim:
             for u in ups[key]:
                 if u["level"] == level:
                     t["gather"][field] = u[field]
+        if self.creative:
+            from .shop import CREATIVE_ENERGY_TIERS
+            en_lvl = self.active_upgrades.get("energy", 0)
+            for u in ups.get("energy", CREATIVE_ENERGY_TIERS):
+                if u["level"] == en_lvl:
+                    t["gather"]["energy_max_s"] = u["energy_max_s"]
         return t
 
     def _next_phase(self, out):
@@ -149,8 +156,9 @@ class DaySim:
             self._enter("quan", sim, out)
         elif self.phase == "quan":
             stock = [dict(it) for it in self.cur.stock]  # v1.2: cá thể dư (hàng thô ở Shop không hao)
+            kw = {"creative": True} if self.creative else {}
             sim = self.shop_factory(self.tuning, self._money, self._earned, self._reputation,
-                                    dict(self.upgrades), stock)
+                                    dict(self.upgrades), stock, **kw)
             self._enter("shop", sim, out)
         else:  # shop
             self.upgrades = dict(self.cur.upgrades)

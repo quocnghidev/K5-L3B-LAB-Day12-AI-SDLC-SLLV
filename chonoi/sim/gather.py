@@ -35,9 +35,10 @@ class GatherSim:
     mode = "gather"
     phase = "gather"
 
-    def __init__(self, tuning, scenario, streams, ids, day=1, item_ids=None):
+    def __init__(self, tuning, scenario, streams, ids, day=1, item_ids=None, creative=False):
         t = tuning["gather"]
         self.t = t
+        self.creative = creative
         self.rng = streams
         self.ids = ids
         self.item_ids = item_ids if item_ids is not None else ids  # `day` truyền bộ cấp id cá thể xuyên pha/Ngày
@@ -90,6 +91,8 @@ class GatherSim:
                 f = self._spawn_one()
                 if f is None:
                     break
+        if self.creative:
+            self._init_creative(t)
         self.money = 0
         self.earned = 0
         self.reputation = tuning["quan"]["reputation_initial"]
@@ -102,12 +105,23 @@ class GatherSim:
         return [dict(it) for it in self.hold]
 
     def snapshot(self) -> dict:
-        return {
-            "player": {"pos": self.pos, "vel": self.vel, "heading_deg": self.heading,
-                       "oxygen_ticks": self.oxygen_ticks, "oxygen_max_ticks": self.oxygen_max,
-                       "hp": self.hp, "hp_max": self.t["hp_max"], "zero_oxy_ticks": self.zero_oxy_ticks,
-                       "invuln_ticks": self.invuln_ticks, "catch_cd_ticks": self.catch_cd_ticks,
-                       "at_surface": self._at_surface()},
+        p = {"pos": self.pos, "vel": self.vel, "heading_deg": self.heading,
+             "oxygen_ticks": self.oxygen_ticks, "oxygen_max_ticks": self.oxygen_max,
+             "hp": self.hp, "hp_max": self.t["hp_max"], "zero_oxy_ticks": self.zero_oxy_ticks,
+             "invuln_ticks": self.invuln_ticks, "catch_cd_ticks": self.catch_cd_ticks,
+             "at_surface": self._at_surface()}
+        if self.creative:
+            p.update({
+                "energy_ticks": round(self.energy_ticks, 1),
+                "energy_max_ticks": self.energy_max,
+                "sprinting": self.sprinting,
+                "shoot_cd_ticks": self.shoot_cd_ticks,
+                "ult_cd_ticks": self.ult_cd_ticks,
+                "ult_cd_max_ticks": self.ult_cd_max,
+                "ult_active_ticks": self.ult_active_ticks,
+            })
+        s = {
+            "player": p,
             "hold": public_list(self.hold, by_id=False), "hold_count": len(self.hold),
             "hold_capacity": self.t["hold_capacity"],
             "nodes": [{"id": n["id"], "pos": n["pos"], "kind": n["kind"],
@@ -117,6 +131,10 @@ class GatherSim:
                       "age_ticks": f["age_ticks"]} for f in sort_by_id(self.fish)],
             "monsters": [dict(m) for m in self.monsters],
         }
+        if self.creative:
+            s["bullets"] = [{"id": b["id"], "pos": list(b["pos"]), "vel": list(b["vel"]), "ult": b["ult"]} for b in self.bullets]
+            s["tongues"] = list(self.tongues)
+        return s
 
     # --- một bước ---------------------------------------------------------------
     def step(self, inp):
@@ -153,6 +171,8 @@ class GatherSim:
         # 5. bắt cá (vị trí cá trước khi bơi)
         if inp.pressed("catch") and self.catch_cd_ticks == 0 and under:
             self._catch_fish(events)
+        if self.creative:
+            self._step_creative(inp, events)
         # 6. hết giờ
         if self.time_left_ticks <= 0:
             self._finish("time", events)
@@ -211,6 +231,8 @@ class GatherSim:
 
     def _update_monsters(self, events) -> bool:
         for m in self.monsters:  # đã sắp theo id
+            if m["kind"] != "ca_sau":
+                continue
             sp = self.species[m["kind"]]
             if m["state"] == "recoil":
                 step = sp["recoil_dist"] / sp["recoil_ticks"]
@@ -234,10 +256,14 @@ class GatherSim:
                 if reached:
                     m["target_idx"] = 1 - m["target_idx"]
             self._clamp_monster(m)
+        if self.creative and self._update_creative_monsters(events):
+            return True
         if self.invuln_ticks > 0:
             return False
         cands = []
         for m in self.monsters:
+            if m["kind"] != "ca_sau":
+                continue
             sp = self.species[m["kind"]]
             if m["state"] == "recoil" or self.pos[1] < sp["depths"][0]:
                 continue
@@ -380,6 +406,15 @@ class GatherSim:
     def _move(self, inp):
         speed = self.t["swim_speed"]
         mx, md = inp.move
+        if self.creative:
+            want_sprint = bool(inp.held.get("sprint")) and (mx != 0.0 or md != 0.0)
+            if want_sprint and self.energy_ticks > 0.0:
+                self.sprinting = True
+                self.energy_ticks = max(0.0, self.energy_ticks - 1.0)
+                speed = speed * 1.65
+            else:
+                self.sprinting = False
+                self.energy_ticks = min(float(self.energy_max), self.energy_ticks + 0.5)
         self.vel = ramp_velocity(self, (mx * speed, md * speed), int(self.t["ramp_max_ticks"]))
         if (mx, md) != (0.0, 0.0):
             self.heading = math.degrees(math.atan2(md, mx)) % 360
@@ -393,3 +428,210 @@ class GatherSim:
             elif self.pos[i] >= hi:
                 self.pos[i] = hi
                 self.vel[i] = min(0.0, self.vel[i])
+
+    # --- sáng tạo (chỉ bật ở live): năng lượng, súng, ultimate, cá voi sát thủ, ếch ---
+    def _init_creative(self, t):
+        self.energy_max = int(round(t.get("energy_max_s", 5) * TICK))
+        self.energy_ticks = float(self.energy_max)
+        self.sprinting = False
+        self.shoot_cd_ticks = 0
+        self.ult_cd_max = int(25 * TICK)
+        self.ult_cd_ticks = self.ult_cd_max  # mặc định đang hồi chiêu 25s
+        self.ult_active_ticks = 0
+        self.ult_dir = self.heading
+        self.bullets = []
+        self.tongues = []
+        for m in self.monsters:
+            m.setdefault("hp", 4)
+            m.setdefault("hp_max", 4)
+            m.setdefault("hit_ticks", 0)
+        # thêm cá sấu để sông nguy hiểm hơn
+        if len(self.monsters) < 3 and "ca_sau" in self.species:
+            extra_wps = [
+                ([[22.0, 14.0], [46.0, 18.0]]),
+                ([[58.0, 12.0], [88.0, 22.0]]),
+            ]
+            for wps in extra_wps:
+                if len(self.monsters) >= 3:
+                    break
+                mid = self.ids.new("M")
+                self.monsters.append({
+                    "id": mid, "kind": "ca_sau", "pos": list(wps[0]),
+                    "waypoints": wps, "target_idx": 1, "state": "patrol",
+                    "state_ticks_left": 0, "recoil_dir": None,
+                    "hp": 4, "hp_max": 4, "hit_ticks": 0,
+                })
+            self.monsters = sort_by_id(self.monsters)
+        rng = self.rng.get("fish_spawn")
+        self._orca_timer = rng.randint(300, 540)
+        self._frog_timer = rng.randint(180, 420)
+
+    def _fire_bullet(self, deg, is_ult=False):
+        rad = math.radians(deg)
+        spd = 34.0 if is_ult else 26.0
+        bid = self.ids.new("B")
+        self.bullets.append({
+            "id": bid,
+            "pos": [self.pos[0] + math.cos(rad) * 0.8, self.pos[1] + math.sin(rad) * 0.8],
+            "vel": [math.cos(rad) * spd, math.sin(rad) * spd],
+            "ttl": 90,
+            "ult": is_ult,
+        })
+
+    def _step_creative(self, inp, events):
+        self.shoot_cd_ticks = max(0, self.shoot_cd_ticks - 1)
+        if self.ult_cd_ticks > 0:
+            self.ult_cd_ticks -= 1
+        aim = inp.aim_deg if inp.aim_deg is not None else self.heading
+        if inp.pressed("ult") and self.ult_cd_ticks == 0:
+            self.ult_cd_ticks = self.ult_cd_max
+            self.ult_active_ticks = 90  # 1.5s bắn liên thanh kiểu Lucian
+            self.ult_dir = aim
+            events.append(("ult_used", {}))
+        if self.ult_active_ticks > 0:
+            if inp.aim_deg is not None:
+                self.ult_dir = inp.aim_deg
+            elif inp.move != (0.0, 0.0):
+                self.ult_dir = self.heading
+            if self.ult_active_ticks % 4 == 0:
+                spread = ((self.ult_active_ticks % 12) - 4) * 0.8
+                self._fire_bullet(self.ult_dir + spread, is_ult=True)
+            self.ult_active_ticks -= 1
+        elif (inp.pressed("shoot") or inp.held.get("shoot")) and self.shoot_cd_ticks == 0:
+            self.shoot_cd_ticks = 18
+            self._fire_bullet(aim, is_ult=False)
+
+        # cập nhật đạn & va chạm quái
+        b = self.t["bounds"]
+        lo_x, hi_x = b["x"]
+        lo_d, hi_d = b["d"]
+        kept_bullets = []
+        for bl in self.bullets:
+            bl["pos"][0] += bl["vel"][0] / TICK
+            bl["pos"][1] += bl["vel"][1] / TICK
+            bl["ttl"] -= 1
+            if bl["ttl"] <= 0 or not (lo_x - 2 <= bl["pos"][0] <= hi_x + 2 and lo_d <= bl["pos"][1] <= hi_d + 1):
+                continue
+            hit_m = None
+            for m in self.monsters:
+                hr = 2.0 if m["kind"] == "ca_voi_sat_thu" else 1.2
+                if math.dist(bl["pos"], m["pos"]) <= hr:
+                    hit_m = m
+                    break
+            if hit_m is not None:
+                hit_m["hp"] = hit_m.get("hp", 4) - 1
+                hit_m["hit_ticks"] = 8
+                if hit_m["hp"] <= 0:
+                    self.monsters.remove(hit_m)
+                    events.append(("monster_defeated", {"id": hit_m["id"], "kind": hit_m["kind"], "pos": list(hit_m["pos"])}))
+                continue
+            kept_bullets.append(bl)
+        self.bullets = kept_bullets
+
+        # sinh Cá Voi Sát Thủ & Ếch ngẫu nhiên
+        rng = self.rng.get("fish_spawn")
+        self._orca_timer -= 1
+        if self._orca_timer <= 0:
+            self._spawn_orca(rng, events)
+            self._orca_timer = rng.randint(720, 1140)
+        self._frog_timer -= 1
+        if self._frog_timer <= 0:
+            self._spawn_frog(rng, events)
+            self._frog_timer = rng.randint(600, 960)
+
+    def _spawn_orca(self, rng, events):
+        lo_x, hi_x = self.t["bounds"]["x"]
+        lo_d, hi_d = self.t["bounds"]["d"]
+        from_left = rng.random() < 0.5
+        x = lo_x - 3.5 if from_left else hi_x + 3.5
+        d = rng.uniform(max(6.0, lo_d + 5.0), max(8.0, hi_d - 4.0))
+        vx = 13.0 if from_left else -13.0
+        m = {
+            "id": self.ids.new("M"), "kind": "ca_voi_sat_thu",
+            "pos": [x, d], "vx": vx, "state": "swim",
+            "hp": 6, "hp_max": 6, "hit_ticks": 0,
+        }
+        self.monsters.append(m)
+        events.append(("orca_spawned", {"id": m["id"], "pos": list(m["pos"])}))
+
+    def _spawn_frog(self, rng, events):
+        if sum(1 for m in self.monsters if m["kind"] == "ech") >= 2:
+            return
+        lo_x, hi_x = self.t["bounds"]["x"]
+        hi_d = self.t["bounds"]["d"][1]
+        x = rng.uniform(lo_x + 12.0, hi_x - 8.0)
+        d = hi_d - 0.7
+        m = {
+            "id": self.ids.new("M"), "kind": "ech",
+            "pos": [x, d], "state": "idle", "state_ticks_left": 150,
+            "life_ticks": rng.randint(720, 960), "target_pos": None,
+            "hp": 3, "hp_max": 3, "hit_ticks": 0,
+        }
+        self.monsters.append(m)
+        events.append(("frog_spawned", {"id": m["id"], "pos": list(m["pos"])}))
+
+    def _update_creative_monsters(self, events) -> bool:
+        lo_x, hi_x = self.t["bounds"]["x"]
+        self.tongues = []
+        to_remove = []
+        for m in list(self.monsters):
+            if m.get("hit_ticks", 0) > 0:
+                m["hit_ticks"] -= 1
+            k = m["kind"]
+            if k == "ca_voi_sat_thu":
+                m["pos"][0] += m["vx"] / TICK
+                if m["pos"][0] < lo_x - 6.0 or m["pos"][0] > hi_x + 6.0:
+                    to_remove.append(m)
+                    continue
+                if self.invuln_ticks == 0 and math.dist(m["pos"], self.pos) <= 1.85:
+                    if self._apply_monster_damage(m, events):
+                        return True
+            elif k == "ech":
+                m["life_ticks"] -= 1
+                if m["life_ticks"] <= 0 and m["state"] == "idle":
+                    to_remove.append(m)
+                    continue
+                if m["state"] == "idle":
+                    m["state_ticks_left"] -= 1
+                    if m["state_ticks_left"] <= 0:
+                        if math.dist(m["pos"], self.pos) <= 22.0 and not self._at_surface():
+                            m["state"] = "aiming"
+                            m["state_ticks_left"] = 30
+                            m["target_pos"] = list(self.pos)
+                        else:
+                            m["state_ticks_left"] = 45
+                elif m["state"] == "aiming":
+                    m["state_ticks_left"] -= 1
+                    self.tongues.append({"from": list(m["pos"]), "to": list(m["target_pos"]), "prog": 0.0, "aiming": True})
+                    if m["state_ticks_left"] <= 0:
+                        m["state"] = "tongue"
+                        m["state_ticks_left"] = 24
+                elif m["state"] == "tongue":
+                    m["state_ticks_left"] -= 1
+                    t_left = m["state_ticks_left"]
+                    prog = 1.0 - abs(t_left - 12) / 12.0  # phóng ra rồi thu về
+                    fx, fd = m["pos"]
+                    tx, td = m["target_pos"]
+                    cur_to = [fx + (tx - fx) * prog, fd + (td - fd) * prog]
+                    self.tongues.append({"from": list(m["pos"]), "to": cur_to, "prog": prog, "aiming": False})
+                    if self.invuln_ticks == 0 and math.dist(cur_to, self.pos) <= 1.1:
+                        if self._apply_monster_damage(m, events):
+                            return True
+                    if m["state_ticks_left"] <= 0:
+                        m["state"] = "idle"
+                        m["state_ticks_left"] = 180
+        for m in to_remove:
+            if m in self.monsters:
+                self.monsters.remove(m)
+        return False
+
+    def _apply_monster_damage(self, m, events) -> bool:
+        mon = self.t["monsters"]
+        self.hp -= 1
+        n = int(math.floor(len(self.hold) * mon["loss_ratio"]))
+        lost = [public(it) for it in reversed(self.hold[len(self.hold) - n:])] if n else []
+        if n:
+            self.hold = self.hold[:len(self.hold) - n]
+        self.invuln_ticks = int(mon["invuln_ticks"])
+        events.append(("monster_hit", {"monster_id": m["id"], "hp": self.hp, "lost": lost, "pos": list(self.pos)}))
+        return self._faint_if_dead("monster", events)

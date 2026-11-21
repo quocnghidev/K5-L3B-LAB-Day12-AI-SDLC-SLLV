@@ -20,6 +20,7 @@ Ngẫu nhiên vẫn đi qua `Streams` (seed); chỉ nhịp chạy theo đồng h
 
 import argparse
 import json
+import math
 import os
 import sys
 import threading
@@ -29,7 +30,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from .contract import load_contract
 from .errors import BadInput
-from .inputs import LiveInputs
+from .inputs import BUTTONS_LIVE, LiveInputs
 from .inventory import read_inventory
 from .runner import Session
 from .scenario import load_scenario
@@ -57,8 +58,8 @@ class LiveGame:
         self._reset()
 
     def _reset(self):
-        self.session = Session(*self._args)
-        self.inputs = LiveInputs()
+        self.session = Session(*self._args, creative=True)
+        self.inputs = LiveInputs(buttons=BUTTONS_LIVE)
         self.events = []
         self._saved = False
         self.error = None
@@ -146,7 +147,13 @@ class LiveGame:
         with self._lock:
             snap = self.session.snapshot()
             meta = dict(self.tuning.get(self.session.phase, {}))
-            meta.update(menu=self.tuning["menu"], shop=self.tuning["shop"])
+            meta.update(menu=self.tuning["menu"], shop=self.tuning["shop"], creative=True)
+            if self.session.phase == "shop":
+                from .sim.shop import CREATIVE_ENERGY_TIERS
+                ups = dict(meta["shop"].get("upgrades", {}))
+                if "energy" not in ups:
+                    ups["energy"] = CREATIVE_ENERGY_TIERS
+                meta["shop"] = dict(meta["shop"], upgrades=ups)
             if self.mode == "day":
                 meta.update(gather=self.tuning["gather"], quan=self.tuning["quan"], days=self.session.sim.days)
             snap["meta"] = meta
@@ -168,16 +175,19 @@ class LiveGame:
             if not ok:
                 raise ValueError("move phải là [a, b] trong [-1, 1]")
         buttons = {}
-        for b in ("interact", "catch", "pause", "shop_done"):
+        for b in ("interact", "catch", "pause", "shop_done", "sprint", "shoot", "ult"):
             if b in body:
                 if not isinstance(body[b], bool):
                     raise ValueError(f"{b} phải là boolean")
                 buttons[b] = body[b]
+        aim_deg = body.get("aim_deg")
+        if aim_deg is not None and (isinstance(aim_deg, bool) or not isinstance(aim_deg, (int, float)) or not math.isfinite(aim_deg)):
+            raise ValueError("aim_deg phải là số")
         buy = body.get("buy")
         if buy is not None and (not isinstance(buy, str) or not buy or len(buy) > 40):
             raise ValueError("buy phải là chuỗi khác rỗng")
         with self._lock:
-            self.inputs.set(move, buy=buy, **buttons)
+            self.inputs.set(move, buy=buy, aim_deg=aim_deg, **buttons)
 
     def control(self, body: dict):
         with self._lock:

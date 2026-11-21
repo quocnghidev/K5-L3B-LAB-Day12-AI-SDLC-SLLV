@@ -26,6 +26,11 @@ from ..items import public_list
 
 TICK = 60.0
 CORE_UPGRADES = ("oxygen", "hp")
+CREATIVE_UPGRADES = CORE_UPGRADES + ("energy",)
+CREATIVE_ENERGY_TIERS = [
+    {"level": 1, "price": 200, "energy_max_s": 8},
+    {"level": 2, "price": 400, "energy_max_s": 12},
+]
 DEFAULT_SHOP_TUNING = {
     "max_ticks": 600,
     "upgrades": {
@@ -69,6 +74,7 @@ def upgraded_gather_stats(tuning: dict, active_upgrades: dict) -> dict:
     shop_up = _shop_cfg(tuning).get("upgrades", {})
     oxy_s = g["oxygen_max_s"]
     hp_max = g["hp_max"]
+    energy_s = g.get("energy_max_s", 5)
     if active_upgrades:
         oxy_lvl = active_upgrades.get("oxygen", 0)
         if oxy_lvl > 0:
@@ -80,10 +86,18 @@ def upgraded_gather_stats(tuning: dict, active_upgrades: dict) -> dict:
             tier = next((x for x in shop_up.get("hp", []) if x["level"] == hp_lvl), None)
             if tier is not None:
                 hp_max = tier["hp_max"]
+        en_lvl = active_upgrades.get("energy", 0)
+        if en_lvl > 0:
+            tiers = shop_up.get("energy", CREATIVE_ENERGY_TIERS)
+            tier = next((x for x in tiers if x["level"] == en_lvl), None)
+            if tier is not None:
+                energy_s = tier["energy_max_s"]
     return {
         "oxygen_max_s": oxy_s,
         "oxygen_max_ticks": int(round(oxy_s * TICK)),
         "hp_max": int(hp_max),
+        "energy_max_s": energy_s,
+        "energy_max_ticks": int(round(energy_s * TICK)),
     }
 
 
@@ -95,6 +109,8 @@ def apply_active_upgrades(tuning: dict, active_upgrades: dict) -> dict:
     stats = upgraded_gather_stats(t, active_upgrades or {})
     t["gather"]["oxygen_max_s"] = stats["oxygen_max_s"]
     t["gather"]["hp_max"] = stats["hp_max"]
+    if active_upgrades and active_upgrades.get("energy", 0) > 0:
+        t["gather"]["energy_max_s"] = stats["energy_max_s"]
     return t
 
 
@@ -103,11 +119,13 @@ class ShopSim:
     phase = "shop"
 
     def __init__(self, tuning, money=0, earned=0, reputation=None,
-                 upgrades=None, stock=None, active_upgrades=None, allowed_upgrades=CORE_UPGRADES):
+                 upgrades=None, stock=None, active_upgrades=None, allowed_upgrades=CORE_UPGRADES, creative=False):
         shop_cfg = _shop_cfg(tuning)
         self.t = shop_cfg
-        self.upgrades_cfg = shop_cfg["upgrades"]
-        self.allowed_upgrades = set(allowed_upgrades)
+        self.upgrades_cfg = dict(shop_cfg["upgrades"])
+        if creative and "energy" not in self.upgrades_cfg:
+            self.upgrades_cfg["energy"] = CREATIVE_ENERGY_TIERS
+        self.allowed_upgrades = set(CREATIVE_UPGRADES if creative else allowed_upgrades)
         self.time_left_ticks = int(shop_cfg.get("max_ticks", 600))
         self.phase_tick = 0
         self.stock = [dict(it) for it in (stock or [])]  # list cá thể nội bộ, không hao tươi

@@ -14,14 +14,16 @@ BUTTONS_V10 = ("interact", "catch")  # v1.0; các nút khác có từ phiên b�
 # v1.1: thêm nút `pause` (mọi mode), `shop_done` (Shop) và lệnh chuỗi `buy` (chỉ tác động ở đúng frame
 # khai báo). `attack`/`photo` chỉ khi bật mở rộng.
 BUTTONS_V11 = BUTTONS_V10 + ("pause", "shop_done")
+BUTTONS_LIVE = BUTTONS_V11 + ("sprint", "shoot", "ult")
 
 
 class InputState:
-    def __init__(self, move, held, edges, buy=None):
+    def __init__(self, move, held, edges, buy=None, aim_deg=None):
         self.move = move
         self.held = held
         self._edges = edges
         self.buy = buy  # chuỗi lệnh Shop ở đúng frame này, hoặc None
+        self.aim_deg = aim_deg
 
     def pressed(self, name: str) -> bool:
         return name in self._edges
@@ -111,12 +113,15 @@ class LiveInputs:
         self._held = {b: False for b in buttons}
         self._pending = set()
         self._buy = None
+        self._aim_deg = None
 
-    def set(self, move=None, buy=None, **buttons):
+    def set(self, move=None, buy=None, aim_deg=None, **buttons):
         if move is not None:
             self._move = normalize(move)
         if buy is not None:
             self._buy = buy  # lệnh Shop: chỉ có hiệu lực ở đúng một bước kế tiếp
+        if aim_deg is not None:
+            self._aim_deg = float(aim_deg)
         for b, v in buttons.items():
             if b not in self._held:
                 continue
@@ -126,5 +131,7 @@ class LiveInputs:
 
     def advance(self) -> InputState:
         edges, self._pending = self._pending, set()
+        buy, self._buy = self._buy, None
+        return InputState(self._move, dict(self._held), edges, buy, aim_deg=self._aim_deg)
         buy, self._buy = self._buy, None
         return InputState(self._move, dict(self._held), edges, buy)
