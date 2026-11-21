@@ -70,6 +70,21 @@ class Decay(unittest.TestCase):
             self.assertEqual(snapshots(rows)[-1]["hold"][0]["fresh"], 100)
 
 
+class QuanStockDecay(unittest.TestCase):
+    def test_stock_loses_quarter_point_per_second_and_spoils_in_stock(self):
+        with Workdir() as w:
+            sc = {"quan": {"stock": [{"id": "I1", "kind": "ca_loc", "fresh": 100},
+                                     {"id": "I2", "kind": "bong_sung", "fresh": 30 + 1 / UNITS}],
+                           "random_customers": False}}
+            code, err = run_headless("--mode", "quan", "--seed", "1", "--ticks", "60", "--snapshot-every", "60",
+                                     "--scenario", write_json(w.path("sc.json"), sc), "--out", w.path("q.jsonl"))
+            self.assertEqual(code, 0, err)
+            rows = read_jsonl(w.path("q.jsonl"))
+            self.assertEqual([x["fresh"] for x in snapshots(rows)[-1]["stock"]][0], 99.75)
+            self.assertEqual([(e["tick"], e["phase"], e["data"]) for e in events(rows, "spoiled")],
+                             [(2, "quan", {"item_id": "I2", "kind": "bong_sung", "location": "stock"})])
+
+
 class InventoryFile(unittest.TestCase):
     def test_count_schema_and_bad_items_exit_2(self):
         bad = [{"items": {"ca_loc": 1}}, {"items": [{"id": "I1", "kind": "ca_loc"}]},

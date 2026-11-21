@@ -215,6 +215,19 @@ class RealShopHeadless(unittest.TestCase):
             self.assertEqual((end["tick"], end["data"]), (3 + TUNING["shop"]["max_ticks"], {"reason": "time"}))
             self.assertEqual((rows[-1]["reason"], rows[-1]["days_completed"]), ("days_complete", 1))
 
+    def test_items_hand_off_same_tick_and_ids_continue_across_days(self):
+        with Workdir() as w:
+            sc = dict(SHORT_QUAN, gather={"hold": [{"id": "I1", "kind": "ca_loc", "fresh": 100}], "random_fish": False})
+            fr = [{"tick": 0, "interact": True}, {"tick": 1, "interact": False}, {"tick": 3, "shop_done": True},
+                  {"tick": 4, "interact": True}]
+            rows = self.run_h(w, sc, fr, ticks=5, days=2)
+            s = {x["tick"]: x for x in snapshots(rows)}
+            # tick 1: bàn giao cùng tick, chỉ hao 1 lần ở bước gather (2 đơn vị), không hao thêm khi chuyển pha
+            self.assertEqual((s[1]["phase"], s[1]["stock"]), ("quan", [{"id": "I1", "kind": "ca_loc", "fresh": 99.992}]))
+            # Ngày 2: mẫu gather.hold nhận id MỚI (I2) với kind/fresh ban đầu
+            self.assertEqual((s[4]["day"], s[4]["phase"], s[4]["hold"]), (2, "gather", [{"id": "I2", "kind": "ca_loc", "fresh": 100}]))
+            self.assertEqual([x["id"] for x in events(rows, "gather_end")[-1]["data"]["inventory"]["items"]], ["I2"])
+
     def test_quan_in_day_only_orders_planned_dishes(self):
         with Workdir() as w:
             # kho có đủ cho cả lẩu cá linh (ngoài kế hoạch D1) lẫn 2 món trong kế hoạch D1
