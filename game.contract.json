@@ -63,44 +63,7 @@
           "pos": [90, 0]
         }
       ],
-      "fish_initial": [
-        {
-          "id": "F1",
-          "kind": "ca_linh",
-          "pos": [15, 5],
-          "heading_deg": 0
-        },
-        {
-          "id": "F2",
-          "kind": "ca_loc",
-          "pos": [30, 10],
-          "heading_deg": 0
-        },
-        {
-          "id": "F3",
-          "kind": "ca_linh",
-          "pos": [45, 10],
-          "heading_deg": 0
-        },
-        {
-          "id": "F4",
-          "kind": "ca_loc",
-          "pos": [60, 16],
-          "heading_deg": 0
-        },
-        {
-          "id": "F5",
-          "kind": "ca_linh",
-          "pos": [75, 5],
-          "heading_deg": 0
-        },
-        {
-          "id": "F6",
-          "kind": "ca_loc",
-          "pos": [90, 16],
-          "heading_deg": 0
-        }
-      ],
+      "fish_initial": 8,
       "fish_speed": 1.5,
       "fish_turn_ticks": 120,
       "fish_max": 12,
