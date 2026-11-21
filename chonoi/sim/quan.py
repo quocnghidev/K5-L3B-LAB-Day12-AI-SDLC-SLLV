@@ -21,12 +21,27 @@ class QuanSim:
     mode = "quan"
     phase = "quan"
 
-    def __init__(self, tuning, scenario, streams, ids, inventory=None):
+    def __init__(self, tuning, scenario, streams, ids, inventory=None,
+                 plan_dishes=None, planned_dishes=None, money=0, earned=0, reputation=None):
         t = tuning["quan"]
         self.t = t
         self.menu = tuning["menu"]
         self.rng = streams
         self.ids = ids
+        raw_plan = plan_dishes if plan_dishes is not None else planned_dishes
+        if raw_plan is None:
+            raw_plan = scenario.get("plan_dishes", scenario.get("planned_dishes"))
+        if raw_plan is not None:
+            if isinstance(raw_plan, dict) and "dishes" in raw_plan and isinstance(raw_plan["dishes"], dict):
+                raw_plan = raw_plan["dishes"]
+            if not isinstance(raw_plan, (list, tuple, set, dict)):
+                raise BadInput("plan_dishes phải là danh sách hoặc map id món")
+            for d in raw_plan:
+                if d not in self.menu:
+                    raise BadInput(f"plan_dishes có món không tồn tại: {d}")
+            self.plan_dishes = set(raw_plan)
+        else:
+            self.plan_dishes = None
         p = scenario.get("player", {})
         self.pos = [float(c) for c in p.get("pos", t["start_pos"])]
         self.vel = [float(c) for c in p.get("vel", [0.0, 0.0])]
@@ -36,7 +51,8 @@ class QuanSim:
         self.stock = dict(inventory if inventory is not None else scenario.get("stock", {}))
         self.hand = scenario.get("hand")
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * TICK)))
-        self.reputation = scenario.get("reputation", t["reputation_initial"])
+        default_rep = t["reputation_initial"] if reputation is None else reputation
+        self.reputation = scenario.get("reputation", default_rep)
         self.random_customers = scenario.get("random_customers", True)
         self.patience_full = int(round(t["patience_s"] * TICK))
         self.phase_tick = 0
@@ -48,8 +64,8 @@ class QuanSim:
         for e in self.customers:
             ids.reserve(e["id"])
         self._check_links()
-        self.money = 0
-        self.earned = 0
+        self.money = int(scenario.get("money", money))
+        self.earned = int(scenario.get("earned", earned))
         self.shift_earned = 0
         self.done = False
         self.reason = None
@@ -148,6 +164,10 @@ class QuanSim:
         for k, v in need.items():
             if v > self.stock.get(k, 0):
                 raise BadInput(f"giữ chỗ vượt tồn kho: {k}")
+        if self.plan_dishes is not None:
+            for c in self.customers:
+                if c["dish_id"] not in self.plan_dishes:
+                    raise BadInput(f"customers.{c['id']}: món {c['dish_id']} không nằm trong kế hoạch ngày")
 
     # --- snapshot ---------------------------------------------------------------------------------------
     def snapshot(self) -> dict:
@@ -313,7 +333,9 @@ class QuanSim:
         if not free:
             return
         table = free[0]  # self.tables đã sắp theo id
-        doable = [d for d in sorted(self.menu)
+        pool = [d for d in sorted(self.menu)
+                if self.plan_dishes is None or d in self.plan_dishes]
+        doable = [d for d in pool
                   if all(self._available(k) >= n for k, n in self.menu[d]["recipe"].items())]
         if not doable:
             events.append(("no_dish", {}))

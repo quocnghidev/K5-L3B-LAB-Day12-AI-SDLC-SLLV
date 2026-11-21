@@ -1,0 +1,6 @@
+day1 (--days 1): elapsed=1.978s (<=20s OK) same_bytes=True
+day1 end: {'type': 'end', 'ticks': 22200, 'sim_tick': 22200, 'mode': 'day', 'state': 'finished', 'reason': 'days_complete', 'money': 0, 'earned': 0, 'reputation': 3.0, 'score': 300, 'days_completed': 1}
+day1 phase_starts: [{'phase': 'gather', 'tick': 0}, {'phase': 'quan', 'tick': 10800}, {'phase': 'shop', 'tick': 21600}]
+day2 (--days 2 upgrade test): bought={'upgrade': 'oxygen', 'level': 1, 'price': 200, 'money': 300}
+day2 Day2 gather snapshot active_upgrades={'oxygen': 1} oxygen_max_ticks=2700 hp_max=3
+day2 end: {'type': 'end', 'ticks': 33003, 'sim_tick': 33003, 'mode': 'day', 'state': 'finished', 'reason': 'days_complete', 'money': 300, 'earned': 500, 'reputation': 3.0, 'score': 800, 'days_completed': 2}

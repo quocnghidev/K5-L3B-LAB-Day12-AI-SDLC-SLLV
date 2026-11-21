@@ -276,5 +276,85 @@ class BadFixtures(unittest.TestCase):
             run(w, sc, ticks=0)
 
 
+class Phase2QuanExpansion(unittest.TestCase):
+    def test_two_stoves_cook_concurrently_and_four_tables_fill_by_id(self):
+        with Workdir() as w:
+            sc = {
+                "stock": {"ca_loc": 10},
+                "player": {"pos": [2, 8]},
+                "customers": [
+                    cust("C1", table_id="T1", order_tick=10),
+                    cust("C2", table_id="T2", order_tick=20),
+                ],
+                "random_customers": False,
+            }
+            # Tick 0: nấu ở B1 -> nhận C1; Tick 1..45: đi sang B2 [5,8]; Tick 46: nấu ở B2 -> nhận C2
+            inp = frames(
+                {"tick": 0, "interact": True},
+                {"tick": 1, "interact": False, "move": [1, 0]},
+                {"tick": 46, "move": [0, 0], "interact": True},
+            )
+            rows = run(w, sc, inp, ticks=60, every=1)
+            started = ev(rows, "cook_started")
+            self.assertEqual(len(started), 2)
+            self.assertEqual((started[0][1]["stove_id"], started[0][1]["order_id"]), ("B1", "C1"))
+            self.assertEqual((started[1][1]["stove_id"], started[1][1]["order_id"]), ("B2", "C2"))
+
+        # 4 bàn lấp đầy theo thứ tự T1 -> T2 -> T3 -> T4 (trước khi C1 hết kiên nhẫn ở tick 3720)
+        with Workdir() as w:
+            rows = run(w, {"stock": {"ca_loc": 10}}, ticks=120 + 900 * 3 + 10)
+            arrived = ev(rows, "customer_arrived")
+            self.assertEqual([d["table_id"] for _, d in arrived], ["T1", "T2", "T3", "T4"])
+            self.assertEqual([t for t, _ in arrived], [120, 1020, 1920, 2820])
+
+    def test_standalone_quan_uses_all_six_dishes(self):
+        from chonoi.ids import IdAllocator
+        from chonoi.inputs import InputPlayer
+        from chonoi.rng import Streams
+        from chonoi.sim.quan import QuanSim
+
+        stock = {"ca_loc": 20, "bong_sung": 20, "ca_linh": 20, "bong_dien_dien": 20, "ca_keo": 20, "keo_neo": 20}
+        seen = set()
+        for seed in range(1, 20):
+            sim = QuanSim(TUNING, {"stock": dict(stock)}, Streams(seed), IdAllocator())
+            ip = InputPlayer([])
+            for t in range(121):
+                for name, data in sim.step(ip.advance(t)):
+                    if name == "customer_arrived":
+                        seen.add(data["dish_id"])
+        self.assertEqual(seen, set(MENU.keys()))
+
+    def test_day_plan_dishes_filters_before_ingredients(self):
+        from chonoi.errors import BadInput
+        from chonoi.ids import IdAllocator
+        from chonoi.inputs import InputPlayer
+        from chonoi.rng import Streams
+        from chonoi.sim.quan import QuanSim
+
+        # Kho chỉ có nguyên liệu nấu ca_keo_nuong, nhưng kế hoạch ngày D1 chỉ có ca_loc_nuong_trui & goi_bong_sung -> no_dish
+        sim = QuanSim(TUNING, {"stock": {"ca_keo": 10}}, Streams(1), IdAllocator(),
+                      plan_dishes={"ca_loc_nuong_trui", "goi_bong_sung"})
+        ip = InputPlayer([])
+        evs = []
+        for t in range(121):
+            evs.extend((t + 1, n, d) for n, d in sim.step(ip.advance(t)))
+        self.assertEqual([e for e in evs if e[1] in ("customer_arrived", "no_dish")], [(120, "no_dish", {})])
+
+        # Kho đủ cả 6 món, nhưng plan_dishes chỉ cho phép ca_keo_nuong -> chỉ gọi ca_keo_nuong
+        full_stock = {"ca_loc": 20, "bong_sung": 20, "ca_linh": 20, "bong_dien_dien": 20, "ca_keo": 20, "keo_neo": 20}
+        sim2 = QuanSim(TUNING, {"stock": full_stock}, Streams(1), IdAllocator(), plan_dishes={"ca_keo_nuong"})
+        arrived = []
+        for t in range(1050):
+            for n, d in sim2.step(ip.advance(t)):
+                if n == "customer_arrived":
+                    arrived.append(d["dish_id"])
+        self.assertEqual(arrived, ["ca_keo_nuong", "ca_keo_nuong"])
+
+        # Fixture khách có món ngoài kế hoạch -> BadInput
+        with self.assertRaises(BadInput):
+            QuanSim(TUNING, {"stock": {"ca_loc": 1}, "customers": [cust()]}, Streams(1), IdAllocator(),
+                    plan_dishes={"goi_bong_sung"})
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,6 @@
+gather exit=0
+gather_end: tick=316 reason=docked inventory={'items': {'bong_dien_dien': 1}}
+integration.inv.json: {'items': {'bong_dien_dien': 1}}
+quan exit=0
+quan tick 0 stock: {'bong_dien_dien': 1}
+match=True
