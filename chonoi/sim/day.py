@@ -31,7 +31,8 @@ def default_shop_factory(*args, **kwargs):
 def plan_for(tuning, day, overrides=None):
     """Kế hoạch của Ngày `day`: preset, hoặc mục `day.day_plan` của scenario (ingredients tính lại)."""
     plans = {p["day"]: p for p in tuning["day_plan"]}
-    p = (overrides or {}).get(day, plans[day])
+    # v1.3 (soak): sau Ngày 5 kế hoạch D1–D5 lặp lại (Ngày 6 dùng D1, ...)
+    p = (overrides or {}).get(day, plans[(day - 1) % len(plans) + 1])
     menu = tuning["menu"]
     ing = {}
     for dish, n in p["dishes"].items():
