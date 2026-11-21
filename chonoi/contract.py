@@ -143,6 +143,14 @@ def validate_tuning(t):
         raise BadInput("quan.tip_min_patience_ratio phải thuộc (0, 1]")
     if not (_num(q.get("tip_reputation")) and q["tip_reputation"] > 0):
         raise BadInput("quan.tip_reputation phải > 0")
+    fr = t.get("freshness")
+    if not isinstance(fr, dict) or set(fr) != {"initial", "gather_decay_per_s", "quan_decay_per_s", "spoiled_below"}:
+        raise BadInput("tuning.freshness phải có initial, gather_decay_per_s, quan_decay_per_s, spoiled_below")
+    _between("freshness.initial", fr["initial"], 0, 100)
+    _between("freshness.spoiled_below", fr["spoiled_below"], 0, 100)
+    from .items import units_per_tick
+    units_per_tick(fr["gather_decay_per_s"])
+    units_per_tick(fr["quan_decay_per_s"])
     if q.get("burn_s") is not None:
         raise BadInput("burn_s phải là null ở Phase 1")
     # TODO(nhóm): bổ sung kiểm các khóa còn lại nếu muốn chặt hơn (bếp/bàn, uy tín, ...).

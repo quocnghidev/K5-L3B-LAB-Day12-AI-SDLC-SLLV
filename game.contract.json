@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.1",
+  "contract_version": "1.2",
   "team": "SLLV",
   "team_size": 2,
   "build_cmd": "true",
@@ -245,6 +245,7 @@
         ]
       }
     },
+    "freshness": {"initial": 100, "gather_decay_per_s": 0.5, "quan_decay_per_s": 0.25, "spoiled_below": 30},
     "score": {"reputation_multiplier": 100}
   }
 }
