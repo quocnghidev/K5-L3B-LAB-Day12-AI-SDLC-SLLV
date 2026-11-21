@@ -14,10 +14,9 @@ Lệnh test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v` → *
 | AC-P4-07 | Clone sạch chạy bản có giao diện bằng ≤ 3 lệnh trên macOS; README ghi môi trường, điều khiển, lệnh test/headless/bench/soak | clone sạch → `cd` → `python3 -m chonoi.live --mode day --days 5`, gọi `/state` | `proof/phase-4/clean-clone.txt`, `README.md` | đạt (đã thử macOS; Linux chưa thử) |
 | AC-P4-08 | Regression P1–P3 còn hiệu lực | toàn bộ bộ test | `unittest.txt` (142 OK) | đạt |
 | AC-P4-09 | `CHANGELOG.md` theo từng phase, release notes, bản đóng gói, CREDITS/LICENSE đã rà | đọc tài liệu | `CHANGELOG.md`, `docs/release-notes-v1.0.0.md`, `CREDITS.md`, asset `cho-noi-v1.0.0.tar.gz` | đạt (repo chưa có file LICENSE — xem clarify Q15) |
-| AC-P4-10 | Tag `phase-4` và Release `v1.0.0` cùng commit trên `main` | `git ls-remote --tags`, trang Release | GitHub | xem ghi chú dưới |
-| AC-P4-11 | Retro rà hành động P2 và chốt việc tiếp theo; phản tư đủ người | đọc tài liệu | `docs/retro.md`, `docs/members/*.md` | xem ghi chú dưới |
+| AC-P4-10 | Tag `phase-4` và Release `v1.0.0` cùng commit trên `main` | `git ls-remote --tags`, trang Release | [Release v1.0.0](https://github.com/quocnghidev/K5-L3B-LAB-Day12-AI-SDLC-SLLV/releases/tag/v1.0.0) | đạt |
+| AC-P4-11 | Retro rà hành động P2 và chốt việc tiếp theo; phản tư đủ người | đọc tài liệu | `docs/retro.md`, `docs/members/*.md` | đạt |
 
 ## Đánh giá ngắn
 - **Đạt:** v1.3, bench, soak, cảnh báo + tương phản cao, clone sạch 3 lệnh, regression P1–P3.
-- **Ghi chú:** AC-P4-10 hoàn tất khi Release `v1.0.0` được công bố trên GitHub (repo chưa có `gh` CLI lúc ghi). AC-P4-11: phản tư của An (`docs/members/katogithub2701.md`) do An tự viết phần phản tư.
 - **Không làm:** mở rộng bảng xếp hạng, phụ đề SFX.
