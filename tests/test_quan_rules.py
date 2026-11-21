@@ -67,10 +67,20 @@ class Arrivals(unittest.TestCase):
             self.assertEqual(events(rows, "customer_arrived"), [])
             self.assertEqual(events(rows, "no_dish"), [])
 
-    def test_no_spawn_when_table_full_and_reservation_blocks_stock(self):
+    def test_reserved_stock_is_not_available_to_next_customer(self):
+        # v1.1 có 4 bàn: T2 còn trống nhưng ca_loc duy nhất đã bị C1 giữ -> no_dish
         with Workdir() as w:
             sc = {"stock": {"ca_loc": 1}, "customers": [cust(patience_ticks_left=PATIENCE)]}
             rows = run(w, sc, ticks=130)
+            self.assertEqual(events(rows, "customer_arrived"), [])
+            self.assertEqual(ev(rows, "no_dish"), [(120, {})])
+
+    def test_no_spawn_when_all_tables_full(self):
+        with Workdir() as w:
+            tables = [t["id"] for t in Q["tables"]]
+            stock = {"ca_loc": len(tables) + 1}
+            custs = [cust(f"C{i}", table_id=tid, patience_ticks_left=PATIENCE) for i, tid in enumerate(tables, 1)]
+            rows = run(w, {"stock": stock, "customers": custs}, ticks=130)
             self.assertEqual(events(rows, "customer_arrived") + events(rows, "no_dish"), [])
 
     def test_same_seed_same_bytes_and_schedule_repeats(self):

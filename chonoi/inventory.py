@@ -10,7 +10,8 @@ import tempfile
 
 from .errors import BadInput
 
-KINDS_P1 = ("ca_loc", "ca_linh", "bong_dien_dien", "bong_sung")
+# v1.1 (Ticket-02) thêm ca_keo, keo_neo. Tên KINDS_P1 giữ lại để không phải sửa nơi gọi.
+KINDS_P1 = ("ca_loc", "ca_linh", "bong_dien_dien", "bong_sung", "ca_keo", "keo_neo")
 
 
 def validate_items(items, kinds=KINDS_P1):
