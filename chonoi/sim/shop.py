@@ -22,6 +22,7 @@ Giao diện cho `day` (Lát 4b):
 import copy
 
 from ..errors import BadInput
+from ..items import public_list
 
 TICK = 60.0
 CORE_UPGRADES = ("oxygen", "hp")
@@ -109,7 +110,7 @@ class ShopSim:
         self.allowed_upgrades = set(allowed_upgrades)
         self.time_left_ticks = int(shop_cfg.get("max_ticks", 600))
         self.phase_tick = 0
-        self.stock = {k: int(v) for k, v in (stock or {}).items() if v > 0}
+        self.stock = [dict(it) for it in (stock or [])]  # list cá thể nội bộ, không hao tươi
         self.money = int(money)
         self.earned = int(earned)
         self.reputation = tuning["quan"]["reputation_initial"] if reputation is None else reputation
@@ -120,7 +121,7 @@ class ShopSim:
 
     def snapshot(self) -> dict:
         return {
-            "stock": {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0},
+            "stock": public_list(self.stock),
             "upgrades": {k: self.upgrades[k] for k in sorted(self.upgrades) if self.upgrades[k] > 0},
         }
 

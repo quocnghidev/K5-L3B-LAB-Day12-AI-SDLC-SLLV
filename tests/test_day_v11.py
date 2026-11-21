@@ -7,10 +7,11 @@ mục 4 để kiểm đổi pha độc lập với Shop.
 import json
 import unittest
 
-from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
+from helpers import Workdir, events, frames, items, read_jsonl, run_headless, snapshots, write_json
 
 from chonoi.contract import load_contract
 from chonoi.inputs import InputPlayer
+from chonoi.items import new_item, public_list
 from chonoi.runner import run
 
 TUNING = load_contract()["tuning"]
@@ -21,7 +22,7 @@ class FakeShop:
 
     def __init__(self, tuning, money, earned, reputation, upgrades, stock):
         self.money, self.earned, self.reputation = money, earned, reputation
-        self.upgrades, self.stock = dict(upgrades), dict(stock)
+        self.upgrades, self.stock = dict(upgrades), list(stock)
         self.time_left_ticks = tuning["shop"]["max_ticks"]
         self.done, self.reason = False, None
 
@@ -37,7 +38,7 @@ class FakeShop:
         return ev
 
     def snapshot(self):
-        return {"stock": self.stock, "upgrades": self.upgrades}
+        return {"stock": public_list(self.stock), "upgrades": self.upgrades}
 
 
 def run_day(w, scenario=None, fr=(), ticks=20, days=1, every=1):
@@ -50,7 +51,12 @@ def names(rows):
     return [(r["tick"], r["phase"], r.get("day"), r["name"]) for r in events(rows)]
 
 
-DOCK = {"gather": {"hold": ["ca_loc", "bong_sung", "bong_sung"], "random_fish": False}}
+def raw_items(*kinds):
+    return [new_item(f"I{i}", k, 100) for i, k in enumerate(kinds, 1)]
+
+
+DOCK = {"gather": {"hold": items("ca_loc", "bong_sung", "bong_sung"), "random_fish": False}}
+DOCK_RAW = {"gather": {"hold": raw_items("ca_loc", "bong_sung", "bong_sung"), "random_fish": False}}
 SHORT_QUAN = {"quan": {"time_left_ticks": 2, "random_customers": False}}
 
 
@@ -69,24 +75,26 @@ class DayFlow(unittest.TestCase):
 
     def test_dock_hands_inventory_to_quan_same_tick(self):
         with Workdir() as w:
-            sc = dict(DOCK, day={"money": 200, "earned": 200})
+            sc = dict(DOCK_RAW, day={"money": 200, "earned": 200})
             rows = run_day(w, sc, [{"tick": 0, "interact": True}], ticks=1)
             self.assertEqual(names(rows)[3:], [(1, "gather", 1, "gather_end"), (1, "quan", 1, "phase_start")])
             s = snapshots(rows)[-1]
-            self.assertEqual((s["phase"], s["phase_tick"], s["stock"], s["money"], s["earned"]),
-                             ("quan", 0, {"bong_sung": 2, "ca_loc": 1}, 200, 200))
+            self.assertEqual((s["phase"], s["phase_tick"], s["money"], s["earned"]), ("quan", 0, 200, 200))
+            self.assertEqual([(it["id"], it["kind"]) for it in s["stock"]],
+                             [("I1", "ca_loc"), ("I2", "bong_sung"), ("I3", "bong_sung")])
+            self.assertTrue(all(abs(it["fresh"] - 23998 / 240) < 0.01 for it in s["stock"]))
 
     def test_faint_still_opens_quan_with_empty_stock(self):
         with Workdir() as w:
-            sc = {"gather": {"random_fish": False, "hold": ["ca_loc"],
+            sc = {"gather": {"random_fish": False, "hold": raw_items("ca_loc"),
                              "player": {"pos": [50, 10], "oxygen_ticks": 0, "hp": 1}}}
             rows = run_day(w, sc, ticks=61)
             self.assertIn((60, "quan", 1, "phase_start"), names(rows))
-            self.assertEqual(snapshots(rows)[-1]["stock"], {})
+            self.assertEqual(snapshots(rows)[-1]["stock"], [])
 
     def test_full_day_ends_after_shop_closes(self):
         with Workdir() as w:
-            sc = dict(DOCK, **SHORT_QUAN)
+            sc = dict(DOCK_RAW, **SHORT_QUAN)
             fr = [{"tick": 0, "interact": True}, {"tick": 3, "shop_done": True}]
             rows = run_day(w, sc, fr, ticks=50)
             self.assertEqual([n for n in names(rows) if n[3] in ("quan_end", "phase_start", "shop_end")],
@@ -97,7 +105,7 @@ class DayFlow(unittest.TestCase):
 
     def test_next_day_uses_bought_upgrade_and_new_plan(self):
         with Workdir() as w:
-            sc = dict(DOCK, **SHORT_QUAN)
+            sc = dict(DOCK_RAW, **SHORT_QUAN)
             fr = [{"tick": 0, "interact": True}, {"tick": 3, "buy": "oxygen", "shop_done": True}]
             rows = run_day(w, sc, fr, ticks=5, days=2)
             self.assertEqual([n for n in names(rows) if n[0] == 4],
@@ -210,7 +218,7 @@ class RealShopHeadless(unittest.TestCase):
     def test_quan_in_day_only_orders_planned_dishes(self):
         with Workdir() as w:
             # kho có đủ cho cả lẩu cá linh (ngoài kế hoạch D1) lẫn 2 món trong kế hoạch D1
-            hold = ["ca_linh"] * 3 + ["bong_dien_dien", "ca_loc", "bong_sung", "bong_sung"]
+            hold = items(*(["ca_linh"] * 3 + ["bong_dien_dien", "ca_loc", "bong_sung", "bong_sung"]))
             sc = {"gather": {"hold": hold, "random_fish": False}}
             rows = self.run_h(w, sc, [{"tick": 0, "interact": True}], ticks=1 + 120 + 900 * 3 + 1)
             dishes = {e["data"]["dish_id"] for e in events(rows, "customer_arrived")}

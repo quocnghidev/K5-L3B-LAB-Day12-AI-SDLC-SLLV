@@ -345,11 +345,17 @@ function drawQuan(w, h) {
   text("⏱ " + fmtTime(snap.time_left_ticks), 14, 32, { size: 24, color: timeColor(snap.time_left_ticks) });
   text(`Tiền ca ${shift ?? 0}k · uy tín ${(snap.reputation ?? 0).toFixed(1)} · điểm ${snap.score ?? 0}`, 130, 32);
   if (snap.day) text("Ngày " + snap.day + " — tối", w - 14, 32, { size: 22, align: "right", bold: true });
-  const reserved = {};
-  (snap.customers || []).forEach((c) => Object.entries(c.reserved || {}).forEach(([k, v]) => (reserved[k] = (reserved[k] || 0) + v)));
-  const avail = Object.keys(snap.stock || {}).map((k) => [k, snap.stock[k] - (reserved[k] || 0)]).filter(([, v]) => v > 0);
-  text("Kho khả dụng: " + (avail.map(([k, v]) => kn(k) + "×" + v).join(", ") || "(trống)"), 14, 64);
-  text("Trên tay: " + (snap.hand ? dn(snap.hand.dish_id) : "(trống)"), 14, 90, { color: snap.hand ? "#fff3d6" : "#9fb3c0" });
+  const reservedIds = new Set();
+  (snap.customers || []).forEach((c) => (c.reserved || []).forEach((id) => reservedIds.add(id)));
+  const stock = snap.stock || [];
+  const availItems = stock.filter((it) => !reservedIds.has(it.id) && !isSpoiled(it));
+  const availCounts = counts(availItems.map((it) => it.kind));
+  const nSpoiled = stock.filter((it) => isSpoiled(it)).length;
+  text("Kho khả dụng: " + (Object.keys(availCounts).map((k) => kn(k) + "×" + availCounts[k]).join(", ") || "(trống)") +
+       (nSpoiled ? `  · ${nSpoiled} ươn` : ""), 14, 62, { color: nSpoiled ? "#ffcc80" : "#e8eef2" });
+  const cellSz = 22, showN = Math.min(stock.length, Math.floor((w - 280) / (cellSz + 3)));
+  for (let i = 0; i < showN; i++) itemCell(stock[i], 14 + i * (cellSz + 3), 72, cellSz);
+  text("Trên tay: " + (snap.hand ? dn(snap.hand.dish_id) : "(trống)"), w - 14, 62, { align: "right", color: snap.hand ? "#fff3d6" : "#9fb3c0" });
   text("WASD đi · E tương tác (bếp / bàn) · Esc/P dừng", w - 14, h - 14, { size: 14, align: "right", color: "#9fb3c0" });
 }
 

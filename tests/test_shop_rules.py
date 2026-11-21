@@ -5,6 +5,7 @@ import unittest
 
 from chonoi.errors import BadInput
 from chonoi.inputs import InputPlayer
+from chonoi.items import new_item
 from chonoi.sim.shop import ShopSim, apply_active_upgrades, upgraded_gather_stats, validate_upgrades
 
 with open("game.contract.json", encoding="utf-8") as _f:
@@ -27,7 +28,8 @@ def run_shop(shop, frames_list, ticks=None):
 
 class ShopUpgrades(unittest.TestCase):
     def test_buy_oxygen_and_hp_sequentially_and_keep_earned(self):
-        shop = ShopSim(TUNING, money=1000, earned=1200, reputation=3.5, upgrades={}, stock={"ca_loc": 2})
+        shop = ShopSim(TUNING, money=1000, earned=1200, reputation=3.5, upgrades={},
+                       stock=[new_item("I1", "ca_loc", 80)])
         evs = run_shop(shop, [
             {"tick": 0, "buy": "oxygen"},   # 200 -> còn 800, level 1
             {"tick": 1, "buy": "hp"},       # 250 -> còn 550, level 1
@@ -43,7 +45,16 @@ class ShopUpgrades(unittest.TestCase):
         self.assertEqual(shop.money, 150)
         self.assertEqual(shop.earned, 1200)
         self.assertEqual(shop.upgrades, {"oxygen": 2, "hp": 1})
-        self.assertEqual(shop.snapshot(), {"stock": {"ca_loc": 2}, "upgrades": {"oxygen": 2, "hp": 1}})
+        self.assertEqual(shop.snapshot(), {
+            "stock": [{"id": "I1", "kind": "ca_loc", "fresh": 80.0}],
+            "upgrades": {"oxygen": 2, "hp": 1},
+        })
+
+    def test_shop_stock_does_not_decay(self):
+        shop = ShopSim(TUNING, money=0, earned=0, reputation=3.0, upgrades={},
+                       stock=[new_item("I1", "ca_loc", 30)])
+        run_shop(shop, [], ticks=600)
+        self.assertEqual(shop.snapshot()["stock"], [{"id": "I1", "kind": "ca_loc", "fresh": 30.0}])
 
     def test_exact_money_allows_purchase(self):
         shop = ShopSim(TUNING, money=200, earned=200, reputation=3.0, upgrades={}, stock={})
