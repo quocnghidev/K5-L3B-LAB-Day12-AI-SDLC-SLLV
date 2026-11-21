@@ -15,10 +15,10 @@
 | `shop.max_ticks`, `shop.upgrades.oxygen[] {level,price,oxygen_max_s}`, `shop.upgrades.hp[] {level,price,hp_max}` | Shop | An (lát 4a) |
 | `gather.nodes` N5/N6 `keo_neo`, `fish_yield.ca_keo`, `fish_*`, `gather.monsters` | gather | Nghị (lát 1, 2) |
 
-Chưa đổi: `gather.fish_initial` vẫn là danh sách 6 đàn đứng yên; chuyển sang số `8` cùng lát 1 (cá bơi/sinh).
+`gather.fish_initial` = 8 (số đàn đầu ca, sinh ở điểm chuẩn theo seed). Snapshot gather có `fish[].age_ticks`, `monsters[]`.
 
 ## 3. Inputs
-- Nút boolean (cạnh lên): `interact`, `catch`, `shop_done` (v1.1). `pause` thêm cùng lát 4b.
+- Nút boolean (cạnh lên): `interact`, `catch`, `pause` (mọi mode), `shop_done` (v1.1). Pause xử lý ở `runner.Session`, sim không cần biết.
 - `buy`: chuỗi khác rỗng, chỉ có ở đúng frame khai báo → `InputState.buy` (None ở frame khác).
 
 ## 4. Giao diện Shop (An viết, Nghị gọi từ `day`)
@@ -33,7 +33,14 @@ class ShopSim:
     def snapshot(self) -> dict: ...   # stock, upgrades
     # thuộc tính runner đọc: money, earned, reputation, time_left_ticks, done, reason, upgrades
 ```
-`day` sao `upgrades` sang `active_upgrades` khi dựng Ngày mới (lát 4b, Nghị).
+`day` (`chonoi/sim/day.py`) gọi `ShopSim(tuning, money, earned, reputation, upgrades, stock)` khi `quan_end`,
+đọc lại `money, earned, reputation, upgrades` khi `done`, rồi sao `upgrades` sang `active_upgrades` lúc dựng Ngày mới.
+Event Shop trả dạng `(name, data)` như gather/quan; `day` tự gắn `phase`/`day`.
+
+## 4b. Quán trong `day` (An, lát 3)
+`day` dựng `QuanSim(...)` rồi gán `sim.plan_dishes = set(id món trong kế hoạch Ngày)` và `money/earned/reputation`
+xuyên Ngày. Quán chạy riêng không có thuộc tính này (= cả 6 món). Lát 3 cần lọc món theo `plan_dishes`
+trước khi lọc nguyên liệu khả dụng.
 
 ## 5. Sự kiện
 | Sự kiện | `data` | Phát ở |

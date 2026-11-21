@@ -42,10 +42,14 @@ def main(argv=None) -> int:
     p.add_argument("--inventory")
     p.add_argument("--inventory-out", dest="inventory_out")
     p.add_argument("--snapshot-every", dest="snapshot_every", type=_int("snapshot-every"), default=10)
+    p.add_argument("--days", type=_int("days"))
     a = p.parse_args(argv)
     try:
-        if a.mode == "day":
-            raise BadInput("--mode day chưa hỗ trợ ở contract v1.0 (có từ v1.1)")
+        if a.days is not None and a.mode != "day":
+            raise BadInput("--days chỉ dùng với day")
+        days = 1 if a.days is None else a.days
+        if not (1 <= days <= 5):
+            raise BadInput("--days phải là số nguyên từ 1 đến 5")
         if a.ticks < 0:
             raise BadInput("--ticks phải >= 0")
         if a.snapshot_every <= 0:
@@ -71,12 +75,15 @@ def main(argv=None) -> int:
         return 2
     try:
         run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
-            inventory=inventory, inventory_out=a.inventory_out)
+            inventory=inventory, inventory_out=a.inventory_out, days=days)
     except BadInput as e:  # lỗi mức luật phát hiện lúc dựng sim
         sys.stderr.write(f"đầu vào sai: {e}\n")
         return 2
     except OSError as e:
         sys.stderr.write(f"lỗi ghi: {e}\n")
+        return 1
+    except RuntimeError as e:  # ví dụ: `day` chạy tới Shop khi chưa có chonoi/sim/shop.py
+        sys.stderr.write(f"lỗi chạy: {e}\n")
         return 1
     return 0
 

@@ -11,9 +11,9 @@ import math
 from .errors import BadInput
 
 BUTTONS_V10 = ("interact", "catch")  # v1.0; các nút khác có từ phiên bản sau
-# v1.1: thêm nút `shop_done` (Shop) và lệnh chuỗi `buy` (chỉ tác động ở đúng frame khai báo).
-# `pause` thêm cùng lát `day`; `attack`/`photo` chỉ khi bật mở rộng.
-BUTTONS_V11 = BUTTONS_V10 + ("shop_done",)
+# v1.1: thêm nút `pause` (mọi mode), `shop_done` (Shop) và lệnh chuỗi `buy` (chỉ tác động ở đúng frame
+# khai báo). `attack`/`photo` chỉ khi bật mở rộng.
+BUTTONS_V11 = BUTTONS_V10 + ("pause", "shop_done")
 
 
 class InputState:
