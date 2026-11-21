@@ -170,5 +170,53 @@ class Cli(unittest.TestCase):
             self.assertEqual(plan["ingredients"], {"bong_dien_dien": 1, "ca_keo": 1, "ca_linh": 2, "keo_neo": 1})
 
 
+class RealShopHeadless(unittest.TestCase):
+    """Tích hợp day + ShopSim thật (lát 4a) qua headless_cmd."""
+
+    def run_h(self, w, sc, fr, ticks, days=1):
+        args = ["--mode", "day", "--days", str(days), "--seed", "3", "--ticks", str(ticks), "--snapshot-every", "1",
+                "--scenario", write_json(w.path("sc.json"), sc), "--out", w.path("o.jsonl")]
+        if fr:
+            args += ["--inputs", write_json(w.path("in.json"), {"frames": fr})]
+        code, err = run_headless(*args)
+        self.assertEqual(code, 0, err)
+        return read_jsonl(w.path("o.jsonl"))
+
+    def test_buy_in_shop_applies_from_next_day(self):
+        with Workdir() as w:
+            sc = dict(DOCK, day={"money": 450, "earned": 450}, **SHORT_QUAN)
+            fr = [{"tick": 0, "interact": True}, {"tick": 3, "buy": "oxygen"},
+                  {"tick": 4, "buy": "hp", "shop_done": True}]
+            rows = self.run_h(w, sc, fr, ticks=6, days=2)
+            self.assertEqual([e["data"] for e in events(rows, "bought")],
+                             [{"upgrade": "oxygen", "level": 1, "price": 200, "money": 250},
+                              {"upgrade": "hp", "level": 1, "price": 250, "money": 0}])
+            s = {x["tick"]: x for x in snapshots(rows)}
+            self.assertEqual((s[4]["phase"], s[4]["upgrades"], s[4]["active_upgrades"]), ("shop", {"oxygen": 1}, {}))
+            p = s[5]["player"]
+            self.assertEqual((s[5]["day"], s[5]["active_upgrades"], p["oxygen_max_ticks"], p["hp"], p["hp_max"]),
+                             (2, {"hp": 1, "oxygen": 1}, 2700, 4, 4))
+            self.assertEqual((s[5]["money"], s[5]["earned"]), (0, 450))
+
+    def test_buy_failed_funds_and_shop_timeout(self):
+        with Workdir() as w:
+            sc = dict(DOCK, **SHORT_QUAN)
+            rows = self.run_h(w, sc, [{"tick": 0, "interact": True}, {"tick": 3, "buy": "oxygen"}], ticks=1000)
+            self.assertEqual(events(rows, "buy_failed")[0]["data"], {"action": "oxygen", "reason": "funds"})
+            end = events(rows, "shop_end")[0]
+            self.assertEqual((end["tick"], end["data"]), (3 + TUNING["shop"]["max_ticks"], {"reason": "time"}))
+            self.assertEqual((rows[-1]["reason"], rows[-1]["days_completed"]), ("days_complete", 1))
+
+    def test_quan_in_day_only_orders_planned_dishes(self):
+        with Workdir() as w:
+            # kho có đủ cho cả lẩu cá linh (ngoài kế hoạch D1) lẫn 2 món trong kế hoạch D1
+            hold = ["ca_linh"] * 3 + ["bong_dien_dien", "ca_loc", "bong_sung", "bong_sung"]
+            sc = {"gather": {"hold": hold, "random_fish": False}}
+            rows = self.run_h(w, sc, [{"tick": 0, "interact": True}], ticks=1 + 120 + 900 * 3 + 1)
+            dishes = {e["data"]["dish_id"] for e in events(rows, "customer_arrived")}
+            self.assertTrue(dishes)
+            self.assertLessEqual(dishes, {"ca_loc_nuong_trui", "goi_bong_sung"})
+
+
 if __name__ == "__main__":
     unittest.main()

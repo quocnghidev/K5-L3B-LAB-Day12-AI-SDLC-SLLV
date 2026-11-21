@@ -134,9 +134,10 @@ class DaySim:
         self._save()
         if self.phase == "gather":
             inv = self.cur.inventory_items()
-            sim = QuanSim(self.tuning, copy.deepcopy(self.tpl_quan), self.streams, IdAllocator(), inventory=inv)
-            sim.plan_dishes = set(self.plan["dishes"])  # lát 3: quán trong `day` lọc món theo kế hoạch
-            self._carry(sim)
+            # lát 3: quán trong `day` lọc món theo kế hoạch; tiền/earned/uy tín xuyên Ngày
+            sim = QuanSim(self.tuning, copy.deepcopy(self.tpl_quan), self.streams, IdAllocator(), inventory=inv,
+                          plan_dishes=set(self.plan["dishes"]), money=self._money, earned=self._earned,
+                          reputation=self._reputation)
             self._enter("quan", sim, out)
         elif self.phase == "quan":
             stock = {k: v for k, v in sorted(self.cur.stock.items()) if v > 0}
