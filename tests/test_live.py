@@ -58,5 +58,51 @@ class LiveServerTest(unittest.TestCase):
         self.assertFalse(server._thread.is_alive())
 
 
+class LiveDayTest(unittest.TestCase):
+    """Chế độ day: giữ ở menu, DayIntro, thả, pause, buy, Thoát (Ticket-02 mục 2 "Menu, pause và HUD")."""
+
+    def wait(self, base, cond, timeout=3):
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            st = json.loads(_get(base + "/state")[1])
+            if cond(st):
+                return st
+            time.sleep(0.03)
+        self.fail("hết giờ chờ trạng thái")
+
+    def test_menu_intro_pause_and_quit(self):
+        tuning = load_contract()["tuning"]
+        game = LiveGame("day", tuning, {}, 1, days=2)
+        server = LiveServer(game, port=0)
+        server.start()
+        try:
+            base = f"http://127.0.0.1:{server.port}"
+            st = json.loads(_get(base + "/state")[1])
+            self.assertEqual((st["mode"], st["ui_hold"], st["intro"], st["day"]), ("day", True, "menu", 1))
+            time.sleep(0.1)
+            self.assertEqual(json.loads(_get(base + "/state")[1])["tick"], 0, "menu: mô phỏng đứng yên")
+            self.assertIn("ingredients", st["day_plan"])
+            self.assertEqual(_post(base + "/control", {"intro": "day"}), 200)
+            self.assertEqual(json.loads(_get(base + "/state")[1])["intro"], "day")
+            self.assertEqual(_post(base + "/control", {"hold": False}), 200)
+            st = self.wait(base, lambda s: s["tick"] > 3)
+            self.assertIsNone(st["intro"])
+            self.assertEqual(_post(base + "/input", {"pause": True}), 200)
+            st = self.wait(base, lambda s: s["state"] == "paused")
+            t = st["sim_tick"]
+            time.sleep(0.1)
+            self.assertEqual(json.loads(_get(base + "/state")[1])["sim_tick"], t, "pause: sim_tick đứng yên")
+            self.assertEqual(_post(base + "/input", {"pause": False, "buy": "oxygen"}), 200)
+            self.assertEqual(_post(base + "/input", {"buy": ""}), 400)
+            self.assertEqual(_post(base + "/control", {"hold": "x"}), 400)
+            self.assertEqual(_post(base + "/control", {"menu": True}), 200)
+            st = json.loads(_get(base + "/state")[1])
+            self.assertEqual((st["tick"], st["intro"]), (0, "menu"))
+            self.assertEqual(_post(base + "/quit", {}), 200)
+            self.assertTrue(game.quit_requested.is_set())
+        finally:
+            server.stop()
+
+
 if __name__ == "__main__":
     unittest.main()
