@@ -1,10 +1,5 @@
-﻿python : test_gather_default_has_keo_neo_nodes (test_contract_v11.NewIngredients.test_gather_default_has_keo_neo_nodes) ... ok
-At line:6 char:1
-+ python -m unittest discover -s tests -v 2>&1 | Out-File -FilePath "do ...
-+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (test_gather_def...o_nodes) ... ok:String) [], RemoteException
-    + FullyQualifiedErrorId : NativeCommandError
- 
+$ PYTHONPATH=tests:. python3 -m unittest discover -s tests -v   (commit 10b557c)
+test_gather_default_has_keo_neo_nodes (test_contract_v11.NewIngredients.test_gather_default_has_keo_neo_nodes) ... ok
 test_quan_reads_inventory_with_new_kinds (test_contract_v11.NewIngredients.test_quan_reads_inventory_with_new_kinds) ... ok
 test_bad_buy_exit_2_and_shop_inputs_ignored_in_gather (test_contract_v11.ShopInputs.test_bad_buy_exit_2_and_shop_inputs_ignored_in_gather) ... ok
 test_buy_only_on_its_frame_and_shop_done_edge (test_contract_v11.ShopInputs.test_buy_only_on_its_frame_and_shop_done_edge) ... ok
@@ -23,6 +18,9 @@ test_hp_upgrade_from_scenario (test_day_v11.DayFlow.test_hp_upgrade_from_scenari
 test_next_day_uses_bought_upgrade_and_new_plan (test_day_v11.DayFlow.test_next_day_uses_bought_upgrade_and_new_plan) ... ok
 test_pause_freezes_gameplay_and_ignores_actions (test_day_v11.Pause.test_pause_freezes_gameplay_and_ignores_actions) ... ok
 test_pause_in_day_mode (test_day_v11.Pause.test_pause_in_day_mode) ... ok
+test_buy_failed_funds_and_shop_timeout (test_day_v11.RealShopHeadless.test_buy_failed_funds_and_shop_timeout) ... ok
+test_buy_in_shop_applies_from_next_day (test_day_v11.RealShopHeadless.test_buy_in_shop_applies_from_next_day) ... ok
+test_quan_in_day_only_orders_planned_dishes (test_day_v11.RealShopHeadless.test_quan_in_day_only_orders_planned_dishes) ... ok
 test_cannot_catch_at_surface (test_gather_rules.Catching.test_cannot_catch_at_surface) ... ok
 test_catch_again_after_cooldown (test_gather_rules.Catching.test_catch_again_after_cooldown) ... ok
 test_catch_hold_full_keeps_fish_and_no_cooldown (test_gather_rules.Catching.test_catch_hold_full_keeps_fish_and_no_cooldown) ... ok
@@ -58,6 +56,7 @@ test_random_fish_false_keeps_fixture_still (test_gather_v11.Swimming.test_random
 test_reflect_at_edge_flips_heading (test_gather_v11.Swimming.test_reflect_at_edge_flips_heading) ... ok
 test_speed_and_age (test_gather_v11.Swimming.test_speed_and_age) ... ok
 test_turn_on_swim_step_120 (test_gather_v11.Swimming.test_turn_on_swim_step_120) ... ok
+test_menu_intro_pause_and_quit (test_live.LiveDayTest.test_menu_intro_pause_and_quit) ... ok
 test_state_input_and_clean_stop (test_live.LiveServerTest.test_state_input_and_clean_stop) ... ok
 test_bad_frames_raise (test_python_starter_units.Units.test_bad_frames_raise) ... ok
 test_catch_is_a_v10_button_and_attack_is_not (test_python_starter_units.Units.test_catch_is_a_v10_button_and_attack_is_not) ... ok
@@ -66,8 +65,7 @@ test_id_sorting (test_python_starter_units.Units.test_id_sorting) ... ok
 test_input_edges_and_inherit (test_python_starter_units.Units.test_input_edges_and_inherit) ... ok
 test_live_inputs_keep_fast_tap_edge (test_python_starter_units.Units.test_live_inputs_keep_fast_tap_edge) ... ok
 test_session_steps_gather_and_dock (test_python_starter_units.Units.test_session_steps_gather_and_dock) ... ok
-test_first_customer_at_scheduled_tick_picks_doable_dish_and_reserves 
-(test_quan_rules.Arrivals.test_first_customer_at_scheduled_tick_picks_doable_dish_and_reserves) ... ok
+test_first_customer_at_scheduled_tick_picks_doable_dish_and_reserves (test_quan_rules.Arrivals.test_first_customer_at_scheduled_tick_picks_doable_dish_and_reserves) ... ok
 test_no_dish_when_stock_cannot_cook_anything (test_quan_rules.Arrivals.test_no_dish_when_stock_cannot_cook_anything) ... ok
 test_no_spawn_when_all_tables_full (test_quan_rules.Arrivals.test_no_spawn_when_all_tables_full) ... ok
 test_random_customers_false_disables_spawn (test_quan_rules.Arrivals.test_random_customers_false_disables_spawn) ... ok
@@ -82,13 +80,11 @@ test_stove_ignored_when_out_of_radius_or_nothing_to_cook (test_quan_rules.Kitche
 test_closing_pays_eaters_and_waiters_leave_without_penalty (test_quan_rules.Leaving.test_closing_pays_eaters_and_waiters_leave_without_penalty) ... ok
 test_just_served_customer_pays_on_closing_step (test_quan_rules.Leaving.test_just_served_customer_pays_on_closing_step) ... ok
 test_leaving_releases_reservation_and_clears_cooking_stove (test_quan_rules.Leaving.test_leaving_releases_reservation_and_clears_cooking_stove) ... ok
-test_patience_runs_out_reduces_reputation_and_drops_everything (test_quan_rules.Leaving.test_patience_runs_out_reduces_reputation_and_drops_everything) 
-... ok
+test_patience_runs_out_reduces_reputation_and_drops_everything (test_quan_rules.Leaving.test_patience_runs_out_reduces_reputation_and_drops_everything) ... ok
 test_reputation_clamped_at_min (test_quan_rules.Leaving.test_reputation_clamped_at_min) ... ok
 test_day_plan_dishes_filters_before_ingredients (test_quan_rules.Phase2QuanExpansion.test_day_plan_dishes_filters_before_ingredients) ... ok
 test_standalone_quan_uses_all_six_dishes (test_quan_rules.Phase2QuanExpansion.test_standalone_quan_uses_all_six_dishes) ... ok
-test_two_stoves_cook_concurrently_and_four_tables_fill_by_id 
-(test_quan_rules.Phase2QuanExpansion.test_two_stoves_cook_concurrently_and_four_tables_fill_by_id) ... ok
+test_two_stoves_cook_concurrently_and_four_tables_fill_by_id (test_quan_rules.Phase2QuanExpansion.test_two_stoves_cook_concurrently_and_four_tables_fill_by_id) ... ok
 test_serve_valid_on_the_tick_patience_hits_zero (test_quan_rules.Serving.test_serve_valid_on_the_tick_patience_hits_zero) ... ok
 test_serve_with_tip_then_eat_then_paid_and_reputation (test_quan_rules.Serving.test_serve_with_tip_then_eat_then_paid_and_reputation) ... ok
 test_tip_threshold_is_exact (test_quan_rules.Serving.test_tip_threshold_is_exact) ... ok
@@ -130,6 +126,6 @@ test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
 test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
 
 ----------------------------------------------------------------------
-Ran 117 tests in 30.329s
+Ran 121 tests in 19.756s
 
 OK
